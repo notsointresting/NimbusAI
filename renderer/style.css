@@ -367,6 +367,34 @@ body {
   height: 16px;
 }
 
+.provider-selector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: background 0.15s;
+}
+
+.provider-selector:hover {
+  background: var(--bg-cream);
+}
+
+.provider-selector svg {
+  width: 16px;
+  height: 16px;
+}
+
+.provider-menu {
+  min-width: 180px;
+}
+
 .send-btn {
   width: 40px;
   height: 40px;
@@ -471,12 +499,44 @@ body {
   color: var(--text-tertiary);
 }
 
-/* Dropdown Menu */
+/* Provider Selector Button */
+.provider-selector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-primary);
+  transition: background 0.15s;
+}
+
+.provider-selector:hover {
+  background: var(--bg-cream);
+}
+
+.provider-selector svg {
+  width: 16px;
+  height: 16px;
+  color: var(--text-tertiary);
+}
+
+.provider-menu {
+  min-width: 180px;
+}
+
+/* Dropdown Menu - opens upward since it's at bottom of screen */
 .dropdown-menu {
   position: absolute;
-  top: calc(100% + 8px);
+  bottom: calc(100% + 8px);
   right: 0;
   min-width: 260px;
+  max-height: 400px;
+  overflow-y: auto;
   background: var(--bg-white);
   border: 1px solid var(--border-light);
   border-radius: 12px;
@@ -484,7 +544,7 @@ body {
   padding: 8px;
   opacity: 0;
   visibility: hidden;
-  transform: translateY(-4px);
+  transform: translateY(4px);
   transition: opacity 0.15s, visibility 0.15s, transform 0.15s;
   z-index: 1000;
 }
@@ -702,6 +762,56 @@ body {
 
 .assistant .message-content p:last-child {
   margin-bottom: 0;
+}
+
+/* Thinking Section (Reasoning/Chain of Thought) */
+.thinking-section {
+  background: #f8f8f6;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.thinking-section[open] {
+  background: #f5f5f2;
+}
+
+.thinking-header {
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.thinking-header:hover {
+  color: var(--text-secondary);
+}
+
+.thinking-header::marker {
+  color: var(--text-tertiary);
+}
+
+.thinking-icon {
+  font-size: 14px;
+}
+
+.thinking-content {
+  padding: 8px 12px 12px;
+  border-top: 1px solid var(--border-light);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #666;
 }
 
 /* Message Actions */

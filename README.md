@@ -35,7 +35,9 @@
 
 ## Features
 
+- **Multi-Provider Support** - Choose between Claude Agent SDK and Opencode for different model options
 - **Claude Agent SDK Integration** - Full agentic capabilities with tool use and multi-turn conversations
+- **Opencode SDK Support** - Access multiple LLM providers (Claude, GPT-5, Grok, GLM, MiniMax, and more)
 - **Composio Tool Router** - Access to 500+ external tools (Gmail, Slack, GitHub, Google Drive, and more)
 - **Persistent Chat Sessions** - Conversations maintain context across messages using SDK session management
 - **Multi-Chat Support** - Create and switch between multiple chat sessions
@@ -53,8 +55,8 @@
 |----------|------------|
 | **Desktop Framework** | Electron.js |
 | **Backend** | Node.js + Express |
-| **AI Agent** | Claude Agent SDK |
-| **Tool Integration** | Composio Tool Router |
+| **AI Providers** | Claude Agent SDK + Opencode SDK |
+| **Tool Integration** | Composio Tool Router + MCP |
 | **Streaming** | Server-Sent Events (SSE) |
 | **Markdown** | Marked.js |
 | **Styling** | Vanilla CSS |
@@ -87,7 +89,10 @@ If you prefer manual setup, follow these steps:
 #### Prerequisites
 
 - Node.js 18+ installed
-- Anthropic API key ([console.anthropic.com](https://console.anthropic.com))
+- **For Claude Provider:**
+  - Anthropic API key ([console.anthropic.com](https://console.anthropic.com))
+- **For Opencode Provider:**
+  - Opencode API key ([opencode.dev](https://opencode.dev))
 - Composio API key ([app.composio.dev](https://app.composio.dev))
 
 #### 1. Clone the Repository
@@ -118,9 +123,22 @@ cp .env.example .env
 Edit `.env` with your API keys:
 
 ```env
+# Claude Provider
 ANTHROPIC_API_KEY=your-anthropic-api-key
+
+# Opencode Provider (optional)
+OPENCODE_API_KEY=your-opencode-api-key
+OPENCODE_HOSTNAME=127.0.0.1
+OPENCODE_PORT=4096
+
+# Composio Integration
 COMPOSIO_API_KEY=your-composio-api-key
 ```
+
+**Provider Selection:**
+- The app allows switching between **Claude** and **Opencode** providers in the UI
+- Only configure the API key(s) for the provider(s) you want to use
+- Opencode can route to multiple model providers through a single SDK
 
 ### Starting the Application
 
@@ -184,6 +202,38 @@ Composio Tool Router provides MCP server integration:
 - Available tools include Google Workspace, Slack, GitHub, and 500+ more
 - Tool calls are streamed and displayed in real-time
 
+### Provider Architecture
+
+The application supports multiple AI providers through a pluggable provider system:
+
+#### Claude Provider
+- Uses Anthropic's Claude Agent SDK
+- Available models:
+  - Claude Opus 4.5 (claude-opus-4-5-20250514)
+  - Claude Sonnet 4.5 (claude-sonnet-4-5-20250514) - default
+  - Claude Haiku 4.5 (claude-haiku-4-5-20250514)
+- Session management via built-in SDK session tracking
+- Direct streaming from Claude API
+
+#### Opencode Provider
+- Routes to multiple LLM providers through a single SDK
+- Available models:
+  - `opencode/big-pickle` - Free reasoning model (default)
+  - `opencode/gpt-5-nano` - OpenAI's reasoning models
+  - `opencode/glm-4.7-free` - Zhipu GLM models
+  - `opencode/grok-code` - xAI Grok for coding
+  - `opencode/minimax-m2.1-free` - MiniMax models
+  - `anthropic/*` - Claude models through Opencode
+- Event-based streaming with real-time part updates
+- Session management per chat conversation
+- Extended thinking support (reasoning parts)
+
+**Streaming Implementation:**
+Both providers use Server-Sent Events (SSE) for streaming responses:
+- Backend: Express server streams normalized chunks via HTTP
+- Frontend: Real-time processing with markdown rendering
+- Tool calls: Inline display with input/output visualization
+
 ---
 
 ## File Structure
@@ -194,10 +244,14 @@ open-claude-cowork/
 ├── preload.js              # IPC security bridge
 ├── renderer/
 │   ├── index.html          # Chat interface
-│   ├── renderer.js         # Frontend logic
+│   ├── renderer.js         # Frontend logic & streaming handler
 │   └── style.css           # Styling
 ├── server/
-│   ├── server.js           # Express + Claude Agent SDK + Composio
+│   ├── server.js           # Express + Provider routing
+│   ├── providers/
+│   │   ├── base-provider.js      # Abstract base class
+│   │   ├── claude-provider.js    # Claude Agent SDK implementation
+│   │   └── opencode-provider.js  # Opencode SDK implementation
 │   └── package.json
 ├── package.json
 ├── .env                    # API keys (not tracked)
@@ -221,14 +275,34 @@ open-claude-cowork/
 **"Failed to connect to backend"**
 - Ensure backend server is running on port 3001
 - Check Terminal 1 for error logs
+- Verify firewall isn't blocking localhost:3001
 
 **"API key error"**
-- Verify `ANTHROPIC_API_KEY` in `.env` starts with `sk-ant-`
+- For Claude: Verify `ANTHROPIC_API_KEY` in `.env` starts with `sk-ant-`
+- For Opencode: Ensure `OPENCODE_API_KEY` is valid and from opencode.dev
 - Ensure `COMPOSIO_API_KEY` is valid
+
+**"Provider not available"**
+- Ensure the required API key is configured in `.env`
+- Restart the backend server after changing `.env`
+- Check server logs for initialization errors
 
 **"Session not persisting"**
 - Check server logs for session ID capture
 - Ensure `chatId` is being passed from frontend
+- Different providers use different session mechanisms (Claude SDK vs Opencode sessions)
+
+**"Streaming seems slow or incomplete"**
+- Check network/firewall settings for SSE connections
+- Verify backend is receiving events from provider SDK
+- Check browser console for connection errors
+- For Opencode: Ensure event subscription is receiving `message.part.updated` events
+
+**"Opencode models not responding"**
+- Verify Opencode server is running (localhost:4096 or configured URL)
+- Check that model identifiers match Opencode format (e.g., `opencode/big-pickle`)
+- Review Opencode API documentation for available models
+- Check server logs for Opencode SDK initialization errors
 
 ---
 
@@ -245,9 +319,11 @@ open-claude-cowork/
 ## Resources
 
 - [Claude Agent SDK Documentation](https://docs.anthropic.com/en/docs/claude-agent-sdk)
+- [Opencode SDK Documentation](https://docs.opencode.dev)
 - [Composio Tool Router](https://docs.composio.dev/tool-router)
 - [Composio Dashboard](https://app.composio.dev)
 - [Electron Documentation](https://www.electronjs.org/docs)
+- [Opencode Platform](https://opencode.dev)
 
 ---
 

@@ -63,6 +63,32 @@
                 </button>
               </div>
               <div class="right-controls">
+                <!-- Provider Selector Dropdown -->
+                <div class="dropdown-container" id="homeProviderDropdown">
+                  <button type="button" class="provider-selector">
+                    <span class="provider-label">Claude</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
+                  <div class="dropdown-menu provider-menu">
+                    <div class="dropdown-item selected" data-value="claude">
+                      <div class="item-row">
+                        <span class="item-label">Claude</span>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </div>
+                      <span class="item-desc">Claude Agent SDK</span>
+                    </div>
+                    <div class="dropdown-item" data-value="opencode">
+                      <div class="item-row">
+                        <span class="item-label">Opencode</span>
+                      </div>
+                      <span class="item-desc">Opencode SDK</span>
+                    </div>
+                  </div>
+                </div>
                 <!-- Model Selector Dropdown -->
                 <div class="dropdown-container" id="homeModelDropdown">
                   <button type="button" class="model-selector">
@@ -71,10 +97,10 @@
                       <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                   </button>
-                  <div class="dropdown-menu model-menu">
+                  <div class="dropdown-menu model-menu" data-provider="claude">
                     <div class="dropdown-item" data-value="claude-opus-4-5-20250514">
                       <div class="item-row">
-                        <span class="item-label">Opus 4.5</span>                      
+                        <span class="item-label">Opus 4.5</span>
                       </div>
                       <span class="item-desc">Most capable for complex work</span>
                     </div>
@@ -158,6 +184,32 @@
                     </button>
                   </div>
                   <div class="right-controls">
+                    <!-- Provider Selector Dropdown -->
+                    <div class="dropdown-container" id="chatProviderDropdown">
+                      <button type="button" class="provider-selector">
+                        <span class="provider-label">Claude</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </button>
+                      <div class="dropdown-menu provider-menu">
+                        <div class="dropdown-item selected" data-value="claude">
+                          <div class="item-row">
+                            <span class="item-label">Claude</span>
+                            <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                              <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                          </div>
+                          <span class="item-desc">Claude Agent SDK</span>
+                        </div>
+                        <div class="dropdown-item" data-value="opencode">
+                          <div class="item-row">
+                            <span class="item-label">Opencode</span>
+                          </div>
+                          <span class="item-desc">Opencode SDK</span>
+                        </div>
+                      </div>
+                    </div>
                     <!-- Model Selector Dropdown -->
                     <div class="dropdown-container" id="chatModelDropdown">
                       <button type="button" class="model-selector">
@@ -166,7 +218,7 @@
                           <polyline points="6 9 12 15 18 9"></polyline>
                         </svg>
                       </button>
-                      <div class="dropdown-menu model-menu">
+                      <div class="dropdown-menu model-menu" data-provider="claude">
                         <div class="dropdown-item" data-value="claude-opus-4-5-20250514">
                           <div class="item-row">
                             <span class="item-label">Opus 4.5</span>
@@ -187,13 +239,6 @@
                             <span class="item-label">Haiku 4.5</span>
                           </div>
                           <span class="item-desc">Fastest for quick answers</span>
-                        </div>
-                        <div class="dropdown-divider"></div>
-                        <div class="dropdown-item more-models">
-                          <span class="item-label">More models</span>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                          </svg>
                         </div>
                       </div>
                     </div>

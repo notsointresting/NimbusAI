@@ -31,6 +31,7 @@ let isFirstMessage = true;
 let todos = [];
 let toolCalls = [];
 let attachedFiles = [];
+let selectedProvider = 'claude';
 let selectedModel = 'claude-sonnet-4-5-20250514';
 let thinkingMode = 'normal'; // 'normal' or 'extended'
 let isWaitingForResponse = false;
@@ -38,6 +39,27 @@ let isWaitingForResponse = false;
 // Multi-chat state
 let allChats = [];
 let currentChatId = null;
+
+// Model configurations per provider
+const providerModels = {
+  claude: [
+    { value: 'claude-opus-4-5-20250514', label: 'Opus 4.5', desc: 'Most capable for complex work' },
+    { value: 'claude-sonnet-4-5-20250514', label: 'Sonnet 4.5', desc: 'Best for everyday tasks', default: true },
+    { value: 'claude-haiku-4-5-20250514', label: 'Haiku 4.5', desc: 'Fastest for quick answers' }
+  ],
+  opencode: [
+    // Opencode Zen (Free)
+    { value: 'opencode/big-pickle', label: 'Big Pickle', desc: 'Reasoning model', default: true },
+    { value: 'opencode/gpt-5-nano', label: 'GPT-5 Nano', desc: 'OpenAI reasoning' },
+    { value: 'opencode/glm-4.7-free', label: 'GLM-4.7', desc: 'Zhipu GLM free' },
+    { value: 'opencode/grok-code', label: 'Grok Code Fast', desc: 'xAI coding model' },
+    { value: 'opencode/minimax-m2.1-free', label: 'MiniMax M2.1', desc: 'MiniMax free' },
+    // Anthropic Claude
+    { value: 'anthropic/claude-sonnet-4-5-20250929', label: 'Claude Sonnet 4.5', desc: 'Best balance' },
+    { value: 'anthropic/claude-opus-4-5-20251101', label: 'Claude Opus 4.5', desc: 'Most capable' },
+    { value: 'anthropic/claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5', desc: 'Fastest' }
+  ]
+};
 
 // Initialize
 function init() {
@@ -65,6 +87,8 @@ function saveState() {
     })),
     todos,
     toolCalls,
+    provider: selectedProvider,
+    model: selectedModel,
     updatedAt: Date.now()
   };
 
@@ -79,6 +103,9 @@ function saveState() {
   // Save to localStorage
   localStorage.setItem('allChats', JSON.stringify(allChats));
   localStorage.setItem('currentChatId', currentChatId);
+  // Also save current provider/model globally
+  localStorage.setItem('selectedProvider', selectedProvider);
+  localStorage.setItem('selectedModel', selectedModel);
 
   renderChatHistory();
 }
@@ -89,6 +116,25 @@ function loadAllChats() {
     const saved = localStorage.getItem('allChats');
     allChats = saved ? JSON.parse(saved) : [];
     currentChatId = localStorage.getItem('currentChatId');
+
+    // Restore global provider/model settings
+    const savedProvider = localStorage.getItem('selectedProvider');
+    const savedModel = localStorage.getItem('selectedModel');
+    if (savedProvider && providerModels[savedProvider]) {
+      selectedProvider = savedProvider;
+      updateProviderUI(savedProvider);
+    }
+    if (savedModel) {
+      selectedModel = savedModel;
+      // Find the model label to update UI
+      const models = providerModels[selectedProvider] || [];
+      const modelInfo = models.find(m => m.value === savedModel);
+      if (modelInfo) {
+        document.querySelectorAll('.model-selector .model-label').forEach(l => {
+          l.textContent = modelInfo.label;
+        });
+      }
+    }
 
     // If there's a current chat, load it
     if (currentChatId) {
@@ -103,6 +149,24 @@ function loadAllChats() {
   }
 }
 
+// Update provider UI across all dropdowns
+function updateProviderUI(provider) {
+  const providerLabel = provider === 'claude' ? 'Claude' : 'Opencode';
+  document.querySelectorAll('.provider-selector .provider-label').forEach(l => {
+    l.textContent = providerLabel;
+  });
+  document.querySelectorAll('.provider-menu .dropdown-item').forEach(item => {
+    const isSelected = item.dataset.value === provider;
+    item.classList.toggle('selected', isSelected);
+    const checkIcon = item.querySelector('.check-icon');
+    if (checkIcon) {
+      checkIcon.style.display = isSelected ? 'block' : 'none';
+    }
+  });
+  // Update model dropdown for the provider
+  updateModelDropdowns(provider);
+}
+
 // Load a specific chat
 function loadChat(chat) {
   currentChatId = chat.id;
@@ -110,6 +174,31 @@ function loadChat(chat) {
   isFirstMessage = false;
   todos = chat.todos || [];
   toolCalls = chat.toolCalls || [];
+
+  // Restore provider/model for this chat
+  if (chat.provider && providerModels[chat.provider]) {
+    selectedProvider = chat.provider;
+    updateProviderUI(chat.provider);
+  }
+  if (chat.model) {
+    selectedModel = chat.model;
+    const models = providerModels[selectedProvider] || [];
+    const modelInfo = models.find(m => m.value === chat.model);
+    if (modelInfo) {
+      document.querySelectorAll('.model-selector .model-label').forEach(l => {
+        l.textContent = modelInfo.label;
+      });
+      // Update checkmarks in model menu
+      document.querySelectorAll('.model-menu .dropdown-item').forEach(item => {
+        const isSelected = item.dataset.value === chat.model;
+        item.classList.toggle('selected', isSelected);
+        const checkIcon = item.querySelector('.check-icon');
+        if (checkIcon) {
+          checkIcon.style.display = isSelected ? 'block' : 'none';
+        }
+      });
+    }
+  }
 
   // Switch to chat view
   switchToChatView();
@@ -285,13 +374,12 @@ function setupDropdowns() {
     });
   });
 
-  // Model selector dropdowns
-  ['homeModelDropdown', 'chatModelDropdown'].forEach(id => {
+  ['homeProviderDropdown', 'chatProviderDropdown'].forEach(id => {
     const dropdown = document.getElementById(id);
     if (!dropdown) return;
 
-    const btn = dropdown.querySelector('.model-selector');
-    const items = dropdown.querySelectorAll('.dropdown-item:not(.more-models)');
+    const btn = dropdown.querySelector('.provider-selector');
+    const items = dropdown.querySelectorAll('.dropdown-item');
 
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -305,28 +393,133 @@ function setupDropdowns() {
         if (!value) return;
 
         const label = item.querySelector('.item-label').textContent;
-        selectedModel = value;
+        selectedProvider = value;
 
-        // Update all model selectors
-        document.querySelectorAll('.model-selector .model-label').forEach(l => {
+        // Update all provider selectors
+        document.querySelectorAll('.provider-selector .provider-label').forEach(l => {
           l.textContent = label;
         });
 
-        // Update selected state and checkmarks
-        document.querySelectorAll('.model-menu .dropdown-item').forEach(i => {
+        // Update selected state and checkmarks for provider dropdowns
+        document.querySelectorAll('.provider-menu .dropdown-item').forEach(i => {
           const isSelected = i.dataset.value === value;
           i.classList.toggle('selected', isSelected);
 
           // Update checkmark visibility
-          const checkIcon = i.querySelector('.check-icon');
+          let checkIcon = i.querySelector('.check-icon');
+          if (isSelected && !checkIcon) {
+            // Add checkmark if selected and doesn't have one
+            const itemRow = i.querySelector('.item-row');
+            if (itemRow) {
+              checkIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+              checkIcon.setAttribute('class', 'check-icon');
+              checkIcon.setAttribute('viewBox', '0 0 24 24');
+              checkIcon.setAttribute('fill', 'none');
+              checkIcon.setAttribute('stroke', 'currentColor');
+              checkIcon.setAttribute('stroke-width', '2');
+              checkIcon.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>';
+              itemRow.appendChild(checkIcon);
+            }
+          }
           if (checkIcon) {
             checkIcon.style.display = isSelected ? 'block' : 'none';
           }
         });
 
+        // Update model dropdown for new provider
+        updateModelDropdowns(value);
+
+        // Save to localStorage immediately
+        localStorage.setItem('selectedProvider', value);
+        localStorage.setItem('selectedModel', selectedModel);
+
         dropdown.classList.remove('open');
       });
     });
+  });
+
+  // Model selector dropdowns
+  ['homeModelDropdown', 'chatModelDropdown'].forEach(id => {
+    const dropdown = document.getElementById(id);
+    if (!dropdown) return;
+
+    const btn = dropdown.querySelector('.model-selector');
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeOtherDropdowns(dropdown);
+      dropdown.classList.toggle('open');
+    });
+
+    // Event delegation for model items (since they're dynamically updated)
+    dropdown.querySelector('.model-menu').addEventListener('click', (e) => {
+      const item = e.target.closest('.dropdown-item');
+      if (!item) return;
+
+      const value = item.dataset.value;
+      if (!value) return;
+
+      const label = item.querySelector('.item-label').textContent;
+      selectedModel = value;
+
+      // Update all model selectors
+      document.querySelectorAll('.model-selector .model-label').forEach(l => {
+        l.textContent = label;
+      });
+
+      // Update selected state and checkmarks
+      document.querySelectorAll('.model-menu .dropdown-item').forEach(i => {
+        const isSelected = i.dataset.value === value;
+        i.classList.toggle('selected', isSelected);
+
+        // Update checkmark visibility
+        const checkIcon = i.querySelector('.check-icon');
+        if (checkIcon) {
+          checkIcon.style.display = isSelected ? 'block' : 'none';
+        }
+      });
+
+      // Save to localStorage immediately
+      localStorage.setItem('selectedModel', value);
+
+      dropdown.classList.remove('open');
+    });
+  });
+}
+
+// Update model dropdowns based on selected provider
+function updateModelDropdowns(provider) {
+  const models = providerModels[provider] || providerModels.claude;
+
+  // Find default model for this provider
+  const defaultModel = models.find(m => m.default) || models[0];
+  selectedModel = defaultModel.value;
+
+  // Save to localStorage
+  localStorage.setItem('selectedModel', selectedModel);
+
+  // Generate HTML for model items
+  const modelItemsHtml = models.map(model => `
+    <div class="dropdown-item${model.default ? ' selected' : ''}" data-value="${model.value}">
+      <div class="item-row">
+        <span class="item-label">${model.label}</span>
+        ${model.default ? `<svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>` : ''}
+      </div>
+      <span class="item-desc">${model.desc}</span>
+    </div>
+  `).join('');
+
+  // Update both model menus
+  document.querySelectorAll('.model-menu').forEach(menu => {
+    menu.innerHTML = modelItemsHtml;
+    menu.dataset.provider = provider;
+  });
+
+  // Update model label in selectors
+  document.querySelectorAll('.model-selector .model-label').forEach(l => {
+    l.textContent = defaultModel.label;
   });
 }
 
@@ -466,8 +659,8 @@ async function handleSendMessage(e) {
   const contentDiv = assistantMessage.querySelector('.message-content');
 
   try {
-    // Pass chatId for session management
-    const response = await window.electronAPI.sendMessage(message, currentChatId);
+    // Pass chatId, provider, and model for session management
+    const response = await window.electronAPI.sendMessage(message, currentChatId, selectedProvider, selectedModel);
     const reader = await response.getReader();
     let buffer = '';
     let hasContent = false;
@@ -513,7 +706,11 @@ async function handleSendMessage(e) {
               }
               hasContent = true;
               receivedStreamingText = true;
-              appendToContent(contentDiv, data.content);
+              if (data.isReasoning) {
+                appendToThinking(contentDiv, data.content);
+              } else {
+                appendToContent(contentDiv, data.content);
+              }
             } else if (data.type === 'tool_use') {
               const toolName = data.name || data.tool || 'Tool';
               const toolInput = data.input || {};
@@ -665,6 +862,41 @@ function appendToContent(contentDiv, content) {
   container.dataset.rawContent += content;
   renderMarkdownContainer(container);
   saveState();
+}
+
+function appendToThinking(contentDiv, content) {
+  // Find or create thinking section (collapsible, above main content)
+  let thinkingSection = contentDiv.querySelector('.thinking-section');
+
+  if (!thinkingSection) {
+    thinkingSection = document.createElement('details');
+    thinkingSection.className = 'thinking-section';
+    thinkingSection.open = false; // Collapsed by default
+
+    const summary = document.createElement('summary');
+    summary.className = 'thinking-header';
+    summary.innerHTML = '<span class="thinking-icon">&#x1F4AD;</span> Thinking...';
+    thinkingSection.appendChild(summary);
+
+    const thinkingContent = document.createElement('div');
+    thinkingContent.className = 'thinking-content';
+    thinkingContent.dataset.rawContent = '';
+    thinkingSection.appendChild(thinkingContent);
+
+    // Insert at the beginning of contentDiv
+    contentDiv.insertBefore(thinkingSection, contentDiv.firstChild);
+  }
+
+  const thinkingContent = thinkingSection.querySelector('.thinking-content');
+  thinkingContent.dataset.rawContent += content;
+
+  // Render as plain text (no markdown for thinking)
+  thinkingContent.textContent = thinkingContent.dataset.rawContent;
+
+  // Update header to show it's still thinking
+  const summary = thinkingSection.querySelector('.thinking-header');
+  const thinkingLength = thinkingContent.dataset.rawContent.length;
+  summary.innerHTML = `<span class="thinking-icon">&#x1F4AD;</span> Thinking (${thinkingLength} chars)`;
 }
 
 // Start a new chat

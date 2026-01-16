@@ -3,8 +3,8 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { query } from '@anthropic-ai/claude-agent-sdk';
 import { Composio } from '@composio/core';
+import { getProvider, getAvailableProviders } from './providers/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,21 +19,35 @@ const composio = new Composio();
 
 const composioSessions = new Map();
 
-const chatSessions = new Map();
-
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// Chat endpoint using Claude Agent SDK
+// Chat endpoint using provider abstraction
 app.post('/api/chat', async (req, res) => {
-  const { message, chatId, userId = 'default-user' } = req.body;
+  const {
+    message,
+    chatId,
+    userId = 'default-user',
+    provider: providerName = 'claude',  // Per-request provider selection
+    model = null  // Per-request model selection
+  } = req.body;
 
   console.log('[CHAT] Request received:', message);
   console.log('[CHAT] Chat ID:', chatId);
+  console.log('[CHAT] Provider:', providerName);
+  console.log('[CHAT] Model:', model || '(default)');
 
   if (!message) {
     return res.status(400).json({ error: 'Message is required' });
+  }
+
+  // Validate provider
+  const availableProviders = getAvailableProviders();
+  if (!availableProviders.includes(providerName.toLowerCase())) {
+    return res.status(400).json({
+      error: `Invalid provider: ${providerName}. Available: ${availableProviders.join(', ')}`
+    });
   }
 
   res.setHeader('Content-Type', 'text/event-stream');
@@ -52,102 +66,35 @@ app.post('/api/chat', async (req, res) => {
       console.log('[COMPOSIO] Session created with MCP URL:', composioSession.mcp.url);
     }
 
-    // Check if we have an existing Claude session for this chat
-    console.log('[CHAT] All stored sessions:', Array.from(chatSessions.entries()));
-    const existingSessionId = chatId ? chatSessions.get(chatId) : null;
-    console.log('[CHAT] Existing session ID for', chatId, ':', existingSessionId || 'none (new chat)');
+    // Get the provider instance
+    const provider = getProvider(providerName);
 
-    // Build query options
-    const queryOptions = {
-      allowedTools: ['Read', 'Write', 'Edit', 'Bash', 'Glob', 'Grep', 'WebSearch', 'WebFetch', 'TodoWrite'],
-      maxTurns: 20,
-      mcpServers: {
-        composio: {
-          type: 'http',
-          url: composioSession.mcp.url,
-          headers: composioSession.mcp.headers
-        }
-      },
-      permissionMode: 'bypassPermissions'
+    // Build MCP servers config - passed to provider
+    const mcpServers = {
+      composio: {
+        type: 'http',
+        url: composioSession.mcp.url,
+        headers: composioSession.mcp.headers
+      }
     };
 
-    // If we have an existing session, resume it
-    if (existingSessionId) {
-      queryOptions.resume = existingSessionId;
-      console.log('[CHAT] Resuming session:', existingSessionId);
-    }
+    console.log('[CHAT] Using provider:', provider.name);
+    console.log('[CHAT] All stored sessions:', Array.from(provider.sessions.entries()));
 
-    console.log('[CHAT] Calling Claude Agent SDK...');
-
-    // Stream responses from Claude Agent SDK
-    for await (const chunk of query({
+    // Stream responses from the provider
+    for await (const chunk of provider.query({
       prompt: message,
-      options: queryOptions
+      chatId,
+      userId,
+      mcpServers,
+      model,
+      allowedTools: ['Read', 'Write', 'Edit', 'Bash', 'Glob', 'Grep', 'WebSearch', 'WebFetch', 'TodoWrite'],
+      maxTurns: 20
     })) {
-      // Debug: log all system messages to find session_id
-      if (chunk.type === 'system') {
-        console.log('[CHAT] System message:', JSON.stringify(chunk, null, 2));
-      }
-
-      // Capture session ID from system init message
-      // Try multiple possible locations for session_id
-      if (chunk.type === 'system' && chunk.subtype === 'init') {
-        const newSessionId = chunk.session_id || chunk.data?.session_id || chunk.sessionId;
-        if (newSessionId && chatId) {
-          chatSessions.set(chatId, newSessionId);
-          console.log('[CHAT] Session ID captured:', newSessionId);
-          console.log('[CHAT] Total sessions stored:', chatSessions.size);
-        } else {
-          console.log('[CHAT] No session_id found in init message');
-        }
-        // Send session ID to frontend
-        if (newSessionId) {
-          res.write(`data: ${JSON.stringify({ type: 'session_init', session_id: newSessionId })}\n\n`);
-        }
-        continue;
-      }
-
-      // If it's an assistant message, extract and emit text content
-      if (chunk.type === 'assistant' && chunk.message && chunk.message.content) {
-        const content = chunk.message.content;
-        if (Array.isArray(content)) {
-          for (const block of content) {
-            if (block.type === 'text' && block.text) {
-              res.write(`data: ${JSON.stringify({ type: 'text', content: block.text })}\n\n`);
-            } else if (block.type === 'tool_use') {
-              const toolEvent = {
-                type: 'tool_use',
-                name: block.name,
-                input: block.input,
-                id: block.id
-              };
-              res.write(`data: ${JSON.stringify(toolEvent)}\n\n`);
-              console.log('[CHAT] Tool use:', block.name);
-            }
-          }
-        }
-        continue;
-      }
-
-      // If it's a tool result, format it nicely
-      if (chunk.type === 'tool_result' || chunk.type === 'result') {
-        const eventData = {
-          type: 'tool_result',
-          result: chunk.result || chunk.content || chunk,
-          tool_use_id: chunk.tool_use_id
-        };
-        res.write(`data: ${JSON.stringify(eventData)}\n\n`);
-        continue;
-      }
-
-      // Skip system chunks, pass through others
-      if (chunk.type !== 'system') {
-        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
-      }
+      // Send chunk as SSE
+      res.write(`data: ${JSON.stringify(chunk)}\n\n`);
     }
 
-    // Send completion signal
-    res.write('data: {"type": "done"}\n\n');
     res.end();
     console.log('[CHAT] Stream completed');
   } catch (error) {
@@ -157,14 +104,42 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Get available providers endpoint
+app.get('/api/providers', (_req, res) => {
+  res.json({
+    providers: getAvailableProviders(),
+    default: 'claude'
+  });
 });
 
-// Start server
-app.listen(PORT, () => {
+// Health check endpoint
+app.get('/api/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    providers: getAvailableProviders()
+  });
+});
+
+// Start server and keep reference to prevent garbage collection
+const server = app.listen(PORT, () => {
   console.log(`\n✓ Backend server running on http://localhost:${PORT}`);
   console.log(`✓ Chat endpoint: POST http://localhost:${PORT}/api/chat`);
-  console.log(`✓ Health check: GET http://localhost:${PORT}/api/health\n`);
+  console.log(`✓ Providers endpoint: GET http://localhost:${PORT}/api/providers`);
+  console.log(`✓ Health check: GET http://localhost:${PORT}/api/health`);
+  console.log(`✓ Available providers: ${getAvailableProviders().join(', ')}\n`);
+});
+
+// Keep the process alive
+server.on('error', (err) => {
+  console.error('Server error:', err);
+});
+
+// Prevent the process from exiting
+process.on('SIGINT', () => {
+  console.log('\nShutting down server...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
 });

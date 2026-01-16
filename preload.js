@@ -4,18 +4,20 @@ const SERVER_URL = 'http://localhost:3001';
 
 // Expose safe API to renderer process via contextBridge
 contextBridge.exposeInMainWorld('electronAPI', {
-  // Send a chat message to the backend with chat ID for session management
-  sendMessage: async (message, chatId) => {
+  // Send a chat message to the backend with chat ID, provider, and model
+  sendMessage: async (message, chatId, provider = 'claude', model = null) => {
     return new Promise((resolve, reject) => {
       console.log('[PRELOAD] Sending message to backend:', message);
       console.log('[PRELOAD] Chat ID:', chatId);
+      console.log('[PRELOAD] Provider:', provider);
+      console.log('[PRELOAD] Model:', model);
 
       fetch(`${SERVER_URL}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ message, chatId })
+        body: JSON.stringify({ message, chatId, provider, model })
       })
         .then(response => {
           if (!response.ok) {
@@ -46,5 +48,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
           reject(new Error(`Failed to connect to backend: ${error.message}`));
         });
     });
+  },
+
+  // Get available providers from backend
+  getProviders: async () => {
+    try {
+      const response = await fetch(`${SERVER_URL}/api/providers`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('[PRELOAD] Error fetching providers:', error);
+      return { providers: ['claude'], default: 'claude' };
+    }
   }
 });
