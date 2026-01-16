@@ -110,8 +110,8 @@ export class OpencodeProvider extends BaseProvider {
     console.log('[Opencode] Session for', chatId, ':', sessionId || 'new');
 
     try {
-      // Convert MCP servers to Opencode format
-      const mcpConfig = this.buildMcpConfig(mcpServers);
+      // Note: MCP servers are configured in opencode.json, not passed via API
+      // The backend server.js writes the Composio MCP URL to opencode.json
 
       // Create session if needed
       if (!sessionId) {
@@ -119,8 +119,7 @@ export class OpencodeProvider extends BaseProvider {
         const sessionResult = await this.client.session.create({
           body: {
             config: {
-              model: modelToUse,
-              mcp: mcpConfig
+              model: modelToUse
             }
           }
         });
@@ -188,7 +187,6 @@ export class OpencodeProvider extends BaseProvider {
 
           // Skip parts from user's message
           if (messageId === userMessageId) {
-            console.log('[Opencode] -> Skipping (user msg)');
             continue;
           }
 

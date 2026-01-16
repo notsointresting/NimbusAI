@@ -234,6 +234,32 @@ Both providers use Server-Sent Events (SSE) for streaming responses:
 - Frontend: Real-time processing with markdown rendering
 - Tool calls: Inline display with input/output visualization
 
+### MCP Configuration (Tools Integration)
+
+**Important: Opencode requires MCP servers to be configured in `server/opencode.json`**
+
+The application automatically updates this file when starting:
+1. Composio session is created on first request with MCP URL
+2. Backend writes the MCP config to `server/opencode.json`
+3. Opencode reads the config file and loads MCP tools
+
+**File: `server/opencode.json`**
+```json
+{
+  "mcp": {
+    "composio": {
+      "type": "remote",
+      "url": "https://backend.composio.dev/tool_router/YOUR_ROUTER_ID/mcp",
+      "headers": {
+        "x-api-key": "YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+**Note:** Don't manually edit this file - it's generated automatically by the backend. The placeholders are replaced with real credentials from your Composio session.
+
 ---
 
 ## File Structure
@@ -247,7 +273,8 @@ open-claude-cowork/
 │   ├── renderer.js         # Frontend logic & streaming handler
 │   └── style.css           # Styling
 ├── server/
-│   ├── server.js           # Express + Provider routing
+│   ├── server.js           # Express + Provider routing + MCP config writer
+│   ├── opencode.json       # MCP config (auto-generated, see note below)
 │   ├── providers/
 │   │   ├── base-provider.js      # Abstract base class
 │   │   ├── claude-provider.js    # Claude Agent SDK implementation
@@ -257,6 +284,12 @@ open-claude-cowork/
 ├── .env                    # API keys (not tracked)
 └── .env.example            # Template
 ```
+
+**Note on `server/opencode.json`:**
+- Generated automatically by the backend when you run the app
+- Contains Composio MCP URL and credentials
+- Opencode reads this file to load tools
+- Don't track in git (add to `.gitignore` or use template)
 
 ---
 

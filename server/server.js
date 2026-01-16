@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 import dotenv from 'dotenv';
 import { Composio } from '@composio/core';
 import { getProvider, getAvailableProviders } from './providers/index.js';
@@ -18,6 +19,21 @@ const PORT = process.env.PORT || 3001;
 const composio = new Composio();
 
 const composioSessions = new Map();
+
+// Write MCP config to opencode.json
+function updateOpencodeConfig(mcpUrl, mcpHeaders) {
+  const opencodeConfigPath = path.join(__dirname, 'opencode.json');
+  const config = {
+    mcp: {
+      composio: {
+        type: 'remote',
+        url: mcpUrl,
+        headers: mcpHeaders
+      }
+    }
+  };
+  fs.writeFileSync(opencodeConfigPath, JSON.stringify(config, null, 2));
+}
 
 // Middleware
 app.use(cors());
@@ -64,6 +80,10 @@ app.post('/api/chat', async (req, res) => {
       composioSession = await composio.create(userId);
       composioSessions.set(userId, composioSession);
       console.log('[COMPOSIO] Session created with MCP URL:', composioSession.mcp.url);
+
+      // Update opencode.json with the MCP config
+      updateOpencodeConfig(composioSession.mcp.url, composioSession.mcp.headers);
+      console.log('[OPENCODE] Updated opencode.json with MCP config');
     }
 
     // Get the provider instance
