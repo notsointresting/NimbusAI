@@ -17,6 +17,7 @@ const chatTitle = document.getElementById('chatTitle');
 // DOM Elements - Right Sidebar
 const sidebar = document.getElementById('sidebar');
 const sidebarToggle = document.getElementById('sidebarToggle');
+const rightSidebarExpand = document.getElementById('rightSidebarExpand');
 const stepsList = document.getElementById('stepsList');
 const stepsCount = document.getElementById('stepsCount');
 const toolCallsList = document.getElementById('toolCallsList');
@@ -25,6 +26,9 @@ const emptyTools = document.getElementById('emptyTools');
 
 // DOM Elements - Left Sidebar (Chat History)
 const chatHistoryList = document.getElementById('chatHistoryList');
+const leftSidebar = document.getElementById('leftSidebar');
+const leftSidebarToggle = document.getElementById('leftSidebarToggle');
+const leftSidebarExpand = document.getElementById('leftSidebarExpand');
 
 // State
 let isFirstMessage = true;
@@ -35,6 +39,9 @@ let selectedProvider = 'claude';
 let selectedModel = 'claude-sonnet-4-5-20250514';
 let thinkingMode = 'normal'; // 'normal' or 'extended'
 let isWaitingForResponse = false;
+
+let activeBrowserSession = null; // { url: string, sessionId: string, inlineElement: HTMLElement }
+let browserDisplayMode = 'hidden'; // 'inline' | 'sidebar' | 'hidden'
 
 // Multi-chat state
 let allChats = [];
@@ -323,16 +330,27 @@ function updateGreeting() {
 function setupEventListeners() {
   // Home form
   homeForm.addEventListener('submit', handleSendMessage);
-  homeInput.addEventListener('input', () => updateSendButton(homeInput, homeSendBtn));
+  homeInput.addEventListener('input', () => {
+    updateSendButton(homeInput, homeSendBtn);
+    autoResizeTextarea(homeInput);
+  });
   homeInput.addEventListener('keydown', (e) => handleKeyPress(e, homeForm));
 
   // Chat form
   chatForm.addEventListener('submit', handleSendMessage);
-  messageInput.addEventListener('input', () => updateSendButton(messageInput, chatSendBtn));
+  messageInput.addEventListener('input', () => {
+    updateSendButton(messageInput, chatSendBtn);
+    autoResizeTextarea(messageInput);
+  });
   messageInput.addEventListener('keydown', (e) => handleKeyPress(e, chatForm));
 
-  // Sidebar toggle
+  // Right sidebar toggle
   sidebarToggle.addEventListener('click', toggleSidebar);
+  rightSidebarExpand.addEventListener('click', toggleSidebar);
+
+  // Left sidebar toggle (chat history)
+  leftSidebarToggle.addEventListener('click', toggleLeftSidebar);
+  leftSidebarExpand.addEventListener('click', toggleLeftSidebar);
 
   // File attachment buttons
   const homeAttachBtn = document.getElementById('homeAttachBtn');
@@ -600,9 +618,39 @@ window.removeAttachedFile = function(index, context) {
   renderAttachedFiles(context);
 }
 
-// Toggle sidebar
+// Toggle sidebar (right sidebar)
 function toggleSidebar() {
   sidebar.classList.toggle('collapsed');
+  const isCollapsed = sidebar.classList.contains('collapsed');
+
+  rightSidebarExpand.classList.toggle('visible', isCollapsed);
+
+  const icon = sidebarToggle.querySelector('svg');
+  if (isCollapsed) {
+    icon.innerHTML = '<polyline points="15 18 9 12 15 6"></polyline>';
+    sidebarToggle.title = 'Expand sidebar';
+  } else {
+    icon.innerHTML = '<polyline points="9 18 15 12 9 6"></polyline>';
+    sidebarToggle.title = 'Collapse sidebar';
+  }
+}
+
+// Toggle left sidebar (chat history)
+function toggleLeftSidebar() {
+  leftSidebar.classList.toggle('collapsed');
+  const isCollapsed = leftSidebar.classList.contains('collapsed');
+
+  leftSidebarExpand.classList.toggle('visible', isCollapsed);
+
+  // Update toggle button icon direction
+  const icon = leftSidebarToggle.querySelector('svg');
+  if (isCollapsed) {
+    icon.innerHTML = '<polyline points="9 18 15 12 9 6"></polyline>';
+    leftSidebarToggle.title = 'Expand sidebar';
+  } else {
+    icon.innerHTML = '<polyline points="15 18 9 12 15 6"></polyline>';
+    leftSidebarToggle.title = 'Collapse sidebar';
+  }
 }
 
 // Update send button state
@@ -616,6 +664,17 @@ function handleKeyPress(e, form) {
     e.preventDefault();
     form.dispatchEvent(new Event('submit'));
   }
+}
+
+
+function autoResizeTextarea(textarea) {
+  textarea.style.height = 'auto';
+  textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+}
+
+// Reset textarea height after sending
+function resetTextareaHeight(textarea) {
+  textarea.style.height = 'auto';
 }
 
 // Switch to chat view
@@ -646,8 +705,8 @@ async function handleSendMessage(e) {
   // Add user message
   addUserMessage(message);
 
-  // Clear input
   input.value = '';
+  resetTextareaHeight(input);
   updateSendButton(input, homeSendBtn);
   updateSendButton(messageInput, chatSendBtn);
 
@@ -659,8 +718,11 @@ async function handleSendMessage(e) {
   const contentDiv = assistantMessage.querySelector('.message-content');
 
   try {
+    console.log('[Chat] Sending message to API...');
     // Pass chatId, provider, and model for session management
     const response = await window.electronAPI.sendMessage(message, currentChatId, selectedProvider, selectedModel);
+    console.log('[Chat] Response received');
+
     const reader = await response.getReader();
     let buffer = '';
     let hasContent = false;
@@ -671,6 +733,7 @@ async function handleSendMessage(e) {
       const { done, value } = await reader.read();
 
       if (done) {
+        console.log('[Chat] Stream complete');
         const loadingIndicator = contentDiv.querySelector('.loading-indicator');
         if (loadingIndicator && hasContent) {
           loadingIndicator.remove();
@@ -800,6 +863,9 @@ async function handleSendMessage(e) {
 
 // Add user message to chat
 function addUserMessage(text) {
+  // Handle browser transition before adding message
+  handleBrowserTransitionOnMessage();
+
   const messageDiv = document.createElement('div');
   messageDiv.className = 'message user';
 
@@ -861,6 +927,13 @@ function appendToContent(contentDiv, content) {
   const container = getCurrentMarkdownContainer(contentDiv);
   container.dataset.rawContent += content;
   renderMarkdownContainer(container);
+
+  // Check for Anchor Browser live URL in content
+  const browserInfo = extractBrowserUrl(contentDiv.dataset.rawContent);
+  if (browserInfo && !activeBrowserSession) {
+    addInlineBrowserEmbed(contentDiv, browserInfo.url, browserInfo.sessionId);
+  }
+
   saveState();
 }
 
@@ -1055,6 +1128,16 @@ function updateInlineToolResult(toolId, result) {
       const resultStr = typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result);
       outputContent.textContent = resultStr.substring(0, 2000) + (resultStr.length > 2000 ? '...' : '');
       outputSection.style.display = 'block';
+
+      // Check for Anchor Browser live URL in tool result
+      const browserInfo = extractBrowserUrl(resultStr);
+      if (browserInfo) {
+        // Find the parent content div and add browser embed
+        const contentDiv = toolDiv.closest('.message-content');
+        if (contentDiv) {
+          addInlineBrowserEmbed(contentDiv, browserInfo.url, browserInfo.sessionId);
+        }
+      }
     }
   }
 }
@@ -1246,6 +1329,273 @@ function getConversationHistory() {
 // Scroll to bottom of messages
 function scrollToBottom() {
   chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// ==================== BROWSER EMBED FUNCTIONS ====================
+
+// Check if a string contains an Anchor Browser live URL
+function extractBrowserUrl(text) {
+  const regex = /https:\/\/live\.anchorbrowser\.io\?sessionId=([a-f0-9-]+)/i;
+  const match = text.match(regex);
+  if (match) {
+    return { url: match[0], sessionId: match[1] };
+  }
+  return null;
+}
+
+// Create inline browser embed in chat
+function addInlineBrowserEmbed(contentDiv, url, sessionId) {
+  // Remove any existing inline browser embeds (only one at a time)
+  const existingEmbed = document.querySelector('.inline-browser-embed');
+  if (existingEmbed) {
+    existingEmbed.remove();
+  }
+
+  const browserDiv = document.createElement('div');
+  browserDiv.className = 'inline-browser-embed';
+  browserDiv.dataset.sessionId = sessionId;
+  browserDiv.dataset.url = url;
+
+  browserDiv.innerHTML = `
+    <div class="browser-embed-header">
+      <div class="browser-header-left">
+        <svg class="browser-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        <span class="browser-title">Live Browser</span>
+        <span class="browser-session-badge">Session Active</span>
+      </div>
+      <div class="browser-header-actions">
+        <button class="browser-action-btn" onclick="openBrowserInNewWindow('${url}')" title="Open in new window">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+        </button>
+        <button class="browser-action-btn" onclick="moveBrowserToSidebar()" title="Move to sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
+          </svg>
+        </button>
+        <button class="browser-action-btn browser-fullscreen-btn" onclick="toggleBrowserFullscreen(this)" title="Fullscreen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <polyline points="9 21 3 21 3 15"></polyline>
+            <line x1="21" y1="3" x2="14" y2="10"></line>
+            <line x1="3" y1="21" x2="10" y2="14"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="browser-embed-content">
+      <iframe
+        src="${url}"
+        class="browser-iframe"
+        allow="clipboard-read; clipboard-write; camera; microphone"
+        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
+      ></iframe>
+    </div>
+    <div class="browser-embed-footer">
+      <span class="browser-url">${url}</span>
+      <button class="browser-copy-url" onclick="copyBrowserUrl('${url}')" title="Copy URL">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+      </button>
+    </div>
+  `;
+
+  // Store active session
+  activeBrowserSession = {
+    url: url,
+    sessionId: sessionId,
+    inlineElement: browserDiv
+  };
+  browserDisplayMode = 'inline';
+
+  // Append to content
+  contentDiv.appendChild(browserDiv);
+
+  // Increment chunk counter
+  const currentChunk = parseInt(contentDiv.dataset.currentChunk || '0');
+  contentDiv.dataset.currentChunk = currentChunk + 1;
+
+  scrollToBottom();
+}
+
+// Move browser from inline to sidebar
+function moveBrowserToSidebar() {
+  if (!activeBrowserSession) return;
+
+  // Remove inline embed
+  if (activeBrowserSession.inlineElement) {
+    activeBrowserSession.inlineElement.remove();
+  }
+
+  // Show browser in sidebar
+  showBrowserInSidebar(activeBrowserSession.url, activeBrowserSession.sessionId);
+  browserDisplayMode = 'sidebar';
+}
+
+// Show browser in sidebar panel
+function showBrowserInSidebar(url, sessionId) {
+  // Check if browser section already exists
+  let browserSection = document.getElementById('browserSection');
+
+  if (!browserSection) {
+    // Create browser section in sidebar
+    browserSection = document.createElement('div');
+    browserSection.id = 'browserSection';
+    browserSection.className = 'sidebar-section browser-section';
+    browserSection.innerHTML = `
+      <div class="section-header browser-section-header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        <span>Live Browser</span>
+        <div class="browser-sidebar-actions">
+          <button class="browser-sidebar-btn" onclick="moveBrowserToInline()" title="Show inline">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+            </svg>
+          </button>
+          <button class="browser-sidebar-btn" onclick="closeBrowserSession()" title="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="browser-sidebar-content">
+        <iframe
+          src="${url}"
+          class="browser-sidebar-iframe"
+          allow="clipboard-read; clipboard-write; camera; microphone"
+          sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals"
+        ></iframe>
+      </div>
+    `;
+
+    // Insert before tool calls section
+    const toolCallsSection = sidebar.querySelector('.sidebar-section:last-child');
+    sidebar.insertBefore(browserSection, toolCallsSection);
+  } else {
+    // Update existing iframe
+    const iframe = browserSection.querySelector('.browser-sidebar-iframe');
+    if (iframe) {
+      iframe.src = url;
+    }
+  }
+
+  // Ensure sidebar is visible
+  sidebar.classList.remove('collapsed');
+
+  // Update session reference
+  activeBrowserSession = {
+    ...activeBrowserSession,
+    url: url,
+    sessionId: sessionId,
+    sidebarElement: browserSection
+  };
+}
+
+// Move browser back to inline (in the last assistant message)
+window.moveBrowserToInline = function() {
+  if (!activeBrowserSession) return;
+
+  // Remove from sidebar
+  const browserSection = document.getElementById('browserSection');
+  if (browserSection) {
+    browserSection.remove();
+  }
+
+  // Find the last assistant message content div
+  const lastAssistantMessage = chatMessages.querySelector('.message.assistant:last-child .message-content');
+  if (lastAssistantMessage && activeBrowserSession.url) {
+    addInlineBrowserEmbed(lastAssistantMessage, activeBrowserSession.url, activeBrowserSession.sessionId);
+  }
+
+  browserDisplayMode = 'inline';
+}
+
+// Close browser session
+window.closeBrowserSession = function() {
+  // Remove inline embed
+  const inlineEmbed = document.querySelector('.inline-browser-embed');
+  if (inlineEmbed) {
+    inlineEmbed.remove();
+  }
+
+  // Remove sidebar section
+  const browserSection = document.getElementById('browserSection');
+  if (browserSection) {
+    browserSection.remove();
+  }
+
+  activeBrowserSession = null;
+  browserDisplayMode = 'hidden';
+}
+
+// Open browser in new window
+window.openBrowserInNewWindow = function(url) {
+  window.open(url, '_blank', 'width=1200,height=800');
+}
+
+// Toggle browser fullscreen
+window.toggleBrowserFullscreen = function(button) {
+  const embedDiv = button.closest('.inline-browser-embed');
+  if (embedDiv) {
+    embedDiv.classList.toggle('fullscreen');
+
+    // Update icon
+    const svg = button.querySelector('svg');
+    if (embedDiv.classList.contains('fullscreen')) {
+      svg.innerHTML = `
+        <polyline points="4 14 10 14 10 20"></polyline>
+        <polyline points="20 10 14 10 14 4"></polyline>
+        <line x1="14" y1="10" x2="21" y2="3"></line>
+        <line x1="3" y1="21" x2="10" y2="14"></line>
+      `;
+    } else {
+      svg.innerHTML = `
+        <polyline points="15 3 21 3 21 9"></polyline>
+        <polyline points="9 21 3 21 3 15"></polyline>
+        <line x1="21" y1="3" x2="14" y2="10"></line>
+        <line x1="3" y1="21" x2="10" y2="14"></line>
+      `;
+    }
+  }
+}
+
+// Copy browser URL
+window.copyBrowserUrl = function(url) {
+  navigator.clipboard.writeText(url).then(() => {
+    // Show brief feedback
+    const btn = document.querySelector('.browser-copy-url');
+    if (btn) {
+      btn.style.color = '#4ade80';
+      setTimeout(() => {
+        btn.style.color = '';
+      }, 1000);
+    }
+  });
+}
+
+// Handle transition when user sends a new message while browser is inline
+function handleBrowserTransitionOnMessage() {
+  if (activeBrowserSession && browserDisplayMode === 'inline') {
+    // Move browser to sidebar when user sends a new message
+    moveBrowserToSidebar();
+  }
 }
 
 // Initialize on load

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import { Composio } from '@composio/core';
-import { getProvider, getAvailableProviders } from './providers/index.js';
+import { getProvider, getAvailableProviders, initializeProviders } from './providers/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,6 +19,24 @@ const PORT = process.env.PORT || 3001;
 const composio = new Composio();
 
 const composioSessions = new Map();
+let defaultComposioSession = null;
+
+// Pre-initialize Composio session on startup
+async function initializeComposioSession() {
+  const defaultUserId = 'default-user';
+  console.log('[COMPOSIO] Pre-initializing session for:', defaultUserId);
+  try {
+    defaultComposioSession = await composio.create(defaultUserId);
+    composioSessions.set(defaultUserId, defaultComposioSession);
+    console.log('[COMPOSIO] Session ready with MCP URL:', defaultComposioSession.mcp.url);
+
+    // Update opencode.json with the MCP config
+    updateOpencodeConfig(defaultComposioSession.mcp.url, defaultComposioSession.mcp.headers);
+    console.log('[OPENCODE] Updated opencode.json with MCP config');
+  } catch (error) {
+    console.error('[COMPOSIO] Failed to pre-initialize session:', error.message);
+  }
+}
 
 // Write MCP config to opencode.json
 function updateOpencodeConfig(mcpUrl, mcpHeaders) {
@@ -72,11 +90,24 @@ app.post('/api/chat', async (req, res) => {
   res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
 
+  res.write(`data: ${JSON.stringify({ type: 'connected', message: 'Processing request...' })}\n\n`);
+
+  const heartbeatInterval = setInterval(() => {
+    if (!res.writableEnded) {
+      res.write(': heartbeat\n\n');
+    }
+  }, 15000);
+
+  res.on('close', () => {
+    clearInterval(heartbeatInterval);
+  });
+
   try {
     // Get or create Composio session for this user
     let composioSession = composioSessions.get(userId);
     if (!composioSession) {
       console.log('[COMPOSIO] Creating new session for user:', userId);
+      res.write(`data: ${JSON.stringify({ type: 'status', message: 'Initializing session...' })}\n\n`);
       composioSession = await composio.create(userId);
       composioSessions.set(userId, composioSession);
       console.log('[COMPOSIO] Session created with MCP URL:', composioSession.mcp.url);
@@ -102,22 +133,34 @@ app.post('/api/chat', async (req, res) => {
     console.log('[CHAT] All stored sessions:', Array.from(provider.sessions.entries()));
 
     // Stream responses from the provider
-    for await (const chunk of provider.query({
-      prompt: message,
-      chatId,
-      userId,
-      mcpServers,
-      model,
-      allowedTools: ['Read', 'Write', 'Edit', 'Bash', 'Glob', 'Grep', 'WebSearch', 'WebFetch', 'TodoWrite'],
-      maxTurns: 20
-    })) {
-      // Send chunk as SSE
-      res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+    try {
+      for await (const chunk of provider.query({
+        prompt: message,
+        chatId,
+        userId,
+        mcpServers,
+        model,
+        allowedTools: ['Read', 'Write', 'Edit', 'Bash', 'Glob', 'Grep', 'WebSearch', 'WebFetch', 'TodoWrite'],
+        maxTurns: 20
+      })) {
+        // Send chunk as SSE
+        const data = `data: ${JSON.stringify(chunk)}\n\n`;
+        res.write(data);
+      }
+    } catch (streamError) {
+      console.error('[CHAT] Stream error during iteration:', streamError);
+      if (!res.writableEnded) {
+        res.write(`data: ${JSON.stringify({ type: 'error', message: streamError.message })}\n\n`);
+      }
     }
 
-    res.end();
+    clearInterval(heartbeatInterval);
+    if (!res.writableEnded) {
+      res.end();
+    }
     console.log('[CHAT] Stream completed');
   } catch (error) {
+    clearInterval(heartbeatInterval);
     console.error('[CHAT] Error:', error);
     res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
     res.end();
@@ -140,6 +183,9 @@ app.get('/api/health', (_req, res) => {
     providers: getAvailableProviders()
   });
 });
+
+await initializeProviders();
+await initializeComposioSession();
 
 // Start server and keep reference to prevent garbage collection
 const server = app.listen(PORT, () => {

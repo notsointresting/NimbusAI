@@ -7,7 +7,8 @@ if (isDev) {
   try {
     // Enable live-reload for the main and renderer processes during development
     require('electron-reload')(__dirname, {
-      electron: path.join(__dirname, 'node_modules', '.bin', 'electron')
+      electron: path.join(__dirname, 'node_modules', '.bin', 'electron'),
+      ignored: /server|node_modules/
     });
   } catch (err) {
     console.warn('Live reload unavailable:', err);

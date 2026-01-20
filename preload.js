@@ -20,8 +20,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         body: JSON.stringify({ message, chatId, provider, model })
       })
         .then(response => {
+
           if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
           }
 
           console.log('[PRELOAD] Connected to backend successfully');
@@ -33,18 +34,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
               const decoder = new TextDecoder();
               return {
                 read: async () => {
-                  const { done, value } = await reader.read();
-                  return {
-                    done,
-                    value: done ? undefined : decoder.decode(value, { stream: true })
-                  };
+                  try {
+                    const { done, value } = await reader.read();
+                    if (done) {
+                      console.log('[PRELOAD] Stream ended');
+                    }
+                    return {
+                      done,
+                      value: done ? undefined : decoder.decode(value, { stream: true })
+                    };
+                  } catch (readError) {
+                    console.error('[PRELOAD] Read error:', readError);
+                    throw readError;
+                  }
                 }
               };
             }
           });
         })
         .catch(error => {
-          console.error('[PRELOAD] Connection error:', error.message);
+          console.error('[PRELOAD] Connection error:', error);
+          console.error('[PRELOAD] Error stack:', error.stack);
           reject(new Error(`Failed to connect to backend: ${error.message}`));
         });
     });

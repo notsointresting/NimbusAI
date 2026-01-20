@@ -19,11 +19,23 @@
           </svg>
           <span>New Chat</span>
         </button>
+        <button class="sidebar-collapse-btn" id="leftSidebarToggle" title="Collapse sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
       </div>
       <div class="chat-history-list" id="chatHistoryList">
         <!-- Chat history items will be added here -->
       </div>
     </aside>
+
+    <!-- Left Sidebar Expand Button (visible when collapsed) -->
+    <button class="left-sidebar-expand-btn" id="leftSidebarExpand" title="Expand chat history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+    </button>
 
     <!-- Main Content -->
     <div class="main-content">
@@ -39,13 +51,13 @@
       <div class="input-container home-input">
         <form id="homeForm" class="input-form">
           <div class="input-wrapper">
-            <input
-              type="text"
+            <textarea
               id="homeInput"
               class="message-input"
-              placeholder="Ask me anything "
+              placeholder="Ask me anything"
               autocomplete="off"
-            />
+              rows="1"
+            ></textarea>
             <div class="input-controls">
               <div class="left-controls">
                 <input type="file" id="homeFileInput" class="file-input-hidden" multiple />
@@ -160,13 +172,13 @@
           <div class="input-container">
             <form id="chatForm" class="input-form">
               <div class="input-wrapper">
-                <input
-                  type="text"
+                <textarea
                   id="messageInput"
                   class="message-input"
                   placeholder="Reply..."
                   autocomplete="off"
-                />
+                  rows="1"
+                ></textarea>
                 <div class="input-controls">
                   <div class="left-controls">
                     <input type="file" id="chatFileInput" class="file-input-hidden" multiple />
@@ -299,6 +311,13 @@
       </aside>
     </div>
     </div><!-- end main-content -->
+
+    <!-- Right Sidebar Expand Button (visible when collapsed) -->
+    <button class="right-sidebar-expand-btn" id="rightSidebarExpand" title="Expand sidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
   </div>
 
   <script src="renderer.js"></script>

@@ -161,6 +161,7 @@ export class OpencodeProvider extends BaseProvider {
       let userMessageId = null;
       const assistantParts = new Map(); // partId -> latest text
       let lastYieldedLength = new Map(); // partId -> length already yielded
+      const yieldedToolCalls = new Set(); // callID -> prevent duplicate tool yields
 
       // Listen to event stream
       for await (const event of events.stream) {
@@ -177,11 +178,9 @@ export class OpencodeProvider extends BaseProvider {
           const messageId = part?.messageID;
           const partId = part?.id;
 
-
           // Skip user's message (first text message we see)
           if (!userMessageId && part?.type === 'text') {
             userMessageId = messageId;
-            console.log(' -> Skipping user input');
             continue;
           }
 
@@ -197,7 +196,6 @@ export class OpencodeProvider extends BaseProvider {
 
             if (fullText.length > prevLength) {
               const delta = fullText.slice(prevLength);
-              console.log('[Opencode] Text delta:', delta.slice(0, 50));
               yield {
                 type: 'text',
                 content: delta,
@@ -219,21 +217,47 @@ export class OpencodeProvider extends BaseProvider {
               };
               lastYieldedLength.set(partId, text.length);
             }
-          } else if (part?.type === 'tool-invocation') {
+          } else if (part?.type === 'tool-invocation' || part?.type === 'tool_invocation' || part?.type === 'tool') {
+            const toolId = part.toolInvocationId || part.callID || part.id || part.tool_invocation_id;
+
+            // Skip if we've already yielded this tool call
+            if (yieldedToolCalls.has(toolId)) {
+              continue;
+            }
+            if (part.state?.status === 'pending') {
+              console.log('[Opencode] Skipping pending tool call:', part.tool);
+              continue;
+            }
+
+            const toolName = part.toolName || part.tool || part.name;
+            const toolArgs = part.state?.input || part.args || part.input || part.parameters || part.params || part.toolInput || {};
+
+            console.log('[Opencode] Tool:', toolName, 'args:', JSON.stringify(toolArgs).slice(0, 80));
+
+            yieldedToolCalls.add(toolId);
+
             yield {
               type: 'tool_use',
-              name: part.toolName,
-              input: part.args,
-              id: part.toolInvocationId,
+              name: toolName,
+              input: toolArgs,
+              id: toolId,
               provider: this.name
             };
-          } else if (part?.type === 'tool-result') {
+          } else if (part?.type === 'tool-result' || part?.type === 'tool_result') {
+            const toolId = part.toolInvocationId || part.callID || part.id || part.tool_invocation_id;
+            const resultData = part.result || part.output || part.content;
+            console.log('[Opencode] Tool result detected:', toolId, 'result:', JSON.stringify(resultData).slice(0, 100));
             yield {
               type: 'tool_result',
-              result: part.result,
-              tool_use_id: part.toolInvocationId,
+              result: resultData,
+              tool_use_id: toolId,
               provider: this.name
             };
+          } else if (part?.type === 'step-start' || part?.type === 'step-finish') {
+            // Skip step markers
+            console.log('[Opencode] Skipping step marker:', part.type);
+          } else {
+            console.log('[Opencode] Unhandled part type:', part?.type, 'full part:', JSON.stringify(part).slice(0, 200));
           }
         } else if (event.type === 'message.updated') {
           // Just log - parts come from message.part.updated, not here

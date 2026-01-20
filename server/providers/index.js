@@ -68,6 +68,18 @@ export async function clearProviderCache() {
   providerInstances.clear();
 }
 
+export async function initializeProviders() {
+  console.log('[Providers] Initializing providers...');
+  try {
+    // Get and initialize opencode provider
+    const opencodeProvider = getProvider('opencode');
+    await opencodeProvider.initialize();
+    console.log('[Providers] Opencode provider initialized');
+  } catch (error) {
+    console.error('[Providers] Error initializing providers:', error.message);
+  }
+}
+
 // Export classes for direct use
 export { ClaudeProvider } from './claude-provider.js';
 export { OpencodeProvider } from './opencode-provider.js';
