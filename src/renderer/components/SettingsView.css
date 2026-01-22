@@ -1,0 +1,351 @@
+.settings-view {
+  padding: 32px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.settings-header {
+  margin-bottom: 32px;
+}
+
+.settings-header h1 {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.settings-header p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.settings-section {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.settings-section h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-section h2::before {
+  content: '';
+  width: 4px;
+  height: 16px;
+  background: var(--accent-primary);
+  border-radius: 2px;
+}
+
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.setting-row:last-child {
+  border-bottom: none;
+}
+
+.setting-info {
+  flex: 1;
+}
+
+.setting-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.setting-description {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.setting-control {
+  margin-left: 24px;
+}
+
+/* Toggle switch */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg-tertiary);
+  border-radius: 24px;
+  transition: var(--transition-fast);
+}
+
+.toggle-slider::before {
+  position: absolute;
+  content: '';
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background: var(--text-secondary);
+  border-radius: 50%;
+  transition: var(--transition-fast);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: var(--accent-primary);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+  background: white;
+}
+
+/* Input field */
+.setting-input {
+  padding: 8px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  width: 200px;
+}
+
+.setting-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+/* Select dropdown */
+.setting-select {
+  padding: 8px 32px 8px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.setting-select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+/* API key management */
+.api-keys-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.api-key-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.api-key-provider {
+  min-width: 100px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.api-key-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: monospace;
+}
+
+.api-key-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.api-key-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+}
+
+.api-key-status.valid {
+  background: var(--success);
+}
+
+.api-key-status.invalid {
+  background: var(--error);
+}
+
+/* Buttons */
+.settings-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.settings-button.primary {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.settings-button.primary:hover {
+  background: var(--accent-hover);
+}
+
+.settings-button.secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.settings-button.secondary:hover {
+  background: var(--border-subtle);
+}
+
+.settings-button.danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+}
+
+.settings-button.danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* Path list for sandboxing */
+.paths-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.path-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-family: monospace;
+}
+
+.path-item .path-text {
+  flex: 1;
+  color: var(--text-secondary);
+}
+
+.path-item .path-status {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.path-item .path-status.allowed {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success);
+}
+
+.path-item .path-status.blocked {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+}
+
+.path-remove {
+  padding: 4px 8px;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.path-remove:hover {
+  color: var(--error);
+}
+
+/* Ollama section */
+.ollama-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+
+.ollama-status .status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.ollama-status .status-dot.connected {
+  background: var(--success);
+}
+
+.ollama-status .status-dot.disconnected {
+  background: var(--error);
+}
+
+.ollama-models {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ollama-model-tag {
+  padding: 6px 12px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ollama-model-tag.installed {
+  border: 1px solid var(--success);
+  color: var(--success);
+}

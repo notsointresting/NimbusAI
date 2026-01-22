@@ -1,0 +1,85 @@
+.permission-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.permission-dialog {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.3s ease;
+}
+
+.permission-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.permission-icon {
+  color: var(--warning);
+}
+
+.permission-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.permission-content {
+  margin-bottom: 20px;
+}
+
+.permission-message {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+.permission-details {
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.permission-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.permission-row:last-child {
+  margin-bottom: 0;
+}
+
+.permission-label {
+  color: var(--text-tertiary);
+  min-width: 70px;
+  font-weight: 500;
+}
+
+.permission-value {
+  color: var(--text-primary);
+  word-break: break-all;
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.permission-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}

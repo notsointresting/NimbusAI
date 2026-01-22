@@ -1,28 +1,40 @@
 {
   "name": "nimbus-ai-agent",
-  "version": "1.0.0",
-  "description": "Nimbus - Autonomous AI Agent Desktop Application with browser automation and full system access",
-  "main": "main.js",
+  "version": "2.0.0",
+  "description": "Nimbus - Autonomous AI Agent with browser automation, local models, and custom skills",
+  "main": "dist/main/index.js",
+  "type": "module",
   "bin": {
     "nimbus": "./cli.js"
   },
   "scripts": {
-    "dev": "NODE_ENV=development electron .",
+    "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:server\" \"wait-on http://localhost:5173 && electron .\"",
+    "dev:renderer": "vite",
+    "dev:server": "tsx watch src/server/index.ts",
+    "build": "npm run build:renderer && npm run build:server && npm run build:main",
+    "build:renderer": "vite build",
+    "build:server": "tsc -p tsconfig.server.json",
+    "build:main": "tsc -p tsconfig.main.json",
     "start": "electron .",
-    "server": "node server/server.js",
+    "server": "tsx src/server/index.ts",
     "cli": "node cli.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "test": "vitest"
   },
   "keywords": [
     "ai",
     "agent",
     "claude",
     "gemini",
+    "ollama",
     "automation",
     "browser",
+    "playwright",
     "desktop",
     "electron",
-    "autonomous"
+    "autonomous",
+    "computer-use"
   ],
   "author": "notsointresting",
   "license": "MIT",
@@ -42,10 +54,31 @@
     "@opencode-ai/sdk": "latest",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "ws": "^8.18.0",
+    "glob": "^11.0.0",
+    "playwright": "^1.48.0",
+    "ollama": "^0.5.0",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/ws": "^8.5.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "concurrently": "^9.0.0",
     "electron": "^39.2.7",
-    "electron-reload": "^2.0.0-alpha.1"
+    "electron-reload": "^2.0.0-alpha.1",
+    "eslint": "^9.0.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "vite": "^6.0.0",
+    "vitest": "^2.0.0",
+    "wait-on": "^8.0.0"
   }
 }
