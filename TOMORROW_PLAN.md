@@ -1,5 +1,19 @@
 # Nimbus AI Agent - Fix Plan
 
+## CRITICAL: Performance Requirement
+
+**See `open-claude-cowork.gif`** - The app organizes desktop icons INSTANTLY.
+This speed MUST be maintained in the new TypeScript version.
+
+### Performance Approach:
+1. **Lean tool execution** - No unnecessary middleware between tool calls
+2. **Batch operations** - Move/organize multiple files in single operation
+3. **Permission caching** - Once approved, don't ask again for same path
+4. **Async where possible** - Don't block on non-critical operations
+5. **Direct file system calls** - Use Node.js fs directly, minimal abstraction
+
+---
+
 ## Issues to Fix
 
 ### 1. NPM Install - Zod Peer Dependency Conflict

@@ -144,6 +144,19 @@ Latest commit: feat: major refactor - TypeScript, React, Ollama, Skills, Sandbox
 
 ---
 
+## Performance Note
+
+The current app organizes files VERY FAST (see open-claude-cowork.gif).
+The desktop icons get reorganized almost instantly.
+
+**Must maintain this speed in new version:**
+- Keep tool execution lean, no unnecessary overhead
+- Batch file operations where possible
+- Cache approved permissions to avoid repeated dialogs
+- Don't slow down system-level operations
+
+---
+
 ## Tomorrow's First Steps
 
 1. `npm install --legacy-peer-deps`
