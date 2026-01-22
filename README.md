@@ -3,7 +3,9 @@
 </p>
 
 <p align="center">
-  <img src="open-claude-cowork.gif" alt="Open Claude Cowork Demo" width="800">
+  <a href="https://platform.composio.dev?utm_source=github&utm_medium=readme&utm_campaign=open-claude-cowork">
+    <img src="open-claude-cowork.gif" alt="Open Claude Cowork Demo" width="800">
+  </a>
 </p>
 
 <p align="center">
