@@ -141,3 +141,14 @@ vite.config.ts.timestamp-*
 .vite/
 
 .DS_Store
+
+# Embedded repos
+antigravity-claude-proxy/
+
+# Claude settings
+.claude/
+
+# Temp files
+nul
+server/verification.png
+server/take_screenshot.ps1

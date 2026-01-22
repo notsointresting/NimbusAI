@@ -23,6 +23,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    title: 'Nimbus',
+    icon: path.join(__dirname, 'Logo', 'transparent-logo.png'),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,

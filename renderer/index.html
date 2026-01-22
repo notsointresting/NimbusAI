@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Claude</title>
+  <title>Nimbus</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
@@ -28,6 +28,15 @@
       <div class="chat-history-list" id="chatHistoryList">
         <!-- Chat history items will be added here -->
       </div>
+      <div class="left-sidebar-footer">
+        <button class="settings-sidebar-btn" onclick="toggleSettingsView()" title="Proxy Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span>Settings</span>
+        </button>
+      </div>
     </aside>
 
     <!-- Left Sidebar Expand Button (visible when collapsed) -->
@@ -39,12 +48,75 @@
 
     <!-- Main Content -->
     <div class="main-content">
+      <!-- Settings View (Antigravity Proxy Settings) -->
+      <div class="settings-view hidden" id="settingsView">
+        <div class="settings-header">
+          <button class="back-btn" onclick="closeSettingsView()" title="Back to chat">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <h2>Proxy Settings</h2>
+          <div class="settings-tabs">
+            <button class="settings-tab active" data-tab="dashboard" onclick="switchSettingsTab('dashboard')">Dashboard</button>
+            <button class="settings-tab" data-tab="accounts" onclick="switchSettingsTab('accounts')">Accounts</button>
+            <button class="settings-tab" data-tab="models" onclick="switchSettingsTab('models')">Models</button>
+            <button class="settings-tab" data-tab="settings" onclick="switchSettingsTab('settings')">Settings</button>
+            <button class="settings-tab" data-tab="logs" onclick="switchSettingsTab('logs')">Logs</button>
+          </div>
+          <button class="settings-refresh-btn" onclick="refreshSettingsIframe()" title="Refresh">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="settings-content">
+          <div class="settings-iframe-container">
+            <iframe
+              id="settingsIframe"
+              src="http://localhost:8080/#dashboard"
+              class="settings-iframe"
+              allow="clipboard-read; clipboard-write"
+            ></iframe>
+            <div class="settings-loading" id="settingsLoading">
+              <div class="loading-spinner"></div>
+              <p>Loading Antigravity settings...</p>
+              <p class="loading-hint">Make sure antigravity-claude-proxy is running on port 8080</p>
+            </div>
+            <div class="settings-error hidden" id="settingsError">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <h3>Cannot connect to Antigravity Proxy</h3>
+              <p>Make sure the proxy is running:</p>
+              <code>cd antigravity-claude-proxy && npm start</code>
+              <button class="retry-btn" onclick="retrySettingsConnection()">Retry Connection</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Home View (shown when no messages) -->
       <div class="home-view" id="homeView">
       <div class="greeting-section">
         <div class="greeting">
-          <h1 class="greeting-text">Open Claude Cowork</h1>
-          <p class="tagline">Powered by Claude Code and Composio</p>
+          <h1 class="greeting-text">Nimbus</h1>
+          <p class="tagline">Autonomous AI Agent</p>
+        </div>
+        <!-- Status Indicators -->
+        <div class="status-indicators" id="statusIndicators">
+          <div class="status-item" id="proxyStatus" title="Proxy connection">
+            <span class="status-dot disconnected"></span>
+            <span class="status-label">Proxy</span>
+          </div>
+          <div class="status-item" id="browserStatus" title="Chrome extension">
+            <span class="status-dot disconnected"></span>
+            <span class="status-label">Browser</span>
+          </div>
         </div>
       </div>
 
@@ -78,18 +150,24 @@
                 <!-- Provider Selector Dropdown -->
                 <div class="dropdown-container" id="homeProviderDropdown">
                   <button type="button" class="provider-selector">
-                    <span class="provider-label">Claude</span>
+                    <span class="provider-label">Nimbus Proxy</span>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                   </button>
                   <div class="dropdown-menu provider-menu">
-                    <div class="dropdown-item selected" data-value="claude">
+                    <div class="dropdown-item selected" data-value="antigravity">
                       <div class="item-row">
-                        <span class="item-label">Claude</span>
+                        <span class="item-label">Nimbus Proxy</span>
                         <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
+                      </div>
+                      <span class="item-desc">Claude & Gemini via Proxy</span>
+                    </div>
+                    <div class="dropdown-item" data-value="claude">
+                      <div class="item-row">
+                        <span class="item-label">Claude</span>
                       </div>
                       <span class="item-desc">Claude Agent SDK</span>
                     </div>
@@ -104,32 +182,38 @@
                 <!-- Model Selector Dropdown -->
                 <div class="dropdown-container" id="homeModelDropdown">
                   <button type="button" class="model-selector">
-                    <span class="model-label">Sonnet 4.5</span>
+                    <span class="model-label">Claude Sonnet 4.5</span>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                   </button>
-                  <div class="dropdown-menu model-menu" data-provider="claude">
-                    <div class="dropdown-item" data-value="claude-opus-4-5-20250514">
+                  <div class="dropdown-menu model-menu" data-provider="antigravity">
+                    <div class="dropdown-item selected" data-value="claude-sonnet-4-5-thinking">
                       <div class="item-row">
-                        <span class="item-label">Opus 4.5</span>
-                      </div>
-                      <span class="item-desc">Most capable for complex work</span>
-                    </div>
-                    <div class="dropdown-item selected" data-value="claude-sonnet-4-5-20250514">
-                      <div class="item-row">
-                        <span class="item-label">Sonnet 4.5</span>
+                        <span class="item-label">Claude Sonnet 4.5</span>
                         <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                       </div>
-                      <span class="item-desc">Best for everyday tasks</span>
+                      <span class="item-desc">Best balance with thinking</span>
                     </div>
-                    <div class="dropdown-item" data-value="claude-haiku-4-5-20250514">
+                    <div class="dropdown-item" data-value="claude-opus-4-5-thinking">
                       <div class="item-row">
-                        <span class="item-label">Haiku 4.5</span>
+                        <span class="item-label">Claude Opus 4.5</span>
                       </div>
-                      <span class="item-desc">Fastest for quick answers</span>
+                      <span class="item-desc">Most capable with thinking</span>
+                    </div>
+                    <div class="dropdown-item" data-value="gemini-3-flash">
+                      <div class="item-row">
+                        <span class="item-label">Gemini 3 Flash</span>
+                      </div>
+                      <span class="item-desc">Fast Gemini with thinking</span>
+                    </div>
+                    <div class="dropdown-item" data-value="gemini-3-pro-high">
+                      <div class="item-row">
+                        <span class="item-label">Gemini 3 Pro High</span>
+                      </div>
+                      <span class="item-desc">Most capable Gemini</span>
                     </div>
                   </div>
                 </div>
@@ -199,18 +283,24 @@
                     <!-- Provider Selector Dropdown -->
                     <div class="dropdown-container" id="chatProviderDropdown">
                       <button type="button" class="provider-selector">
-                        <span class="provider-label">Claude</span>
+                        <span class="provider-label">Nimbus Proxy</span>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <polyline points="6 9 12 15 18 9"></polyline>
                         </svg>
                       </button>
                       <div class="dropdown-menu provider-menu">
-                        <div class="dropdown-item selected" data-value="claude">
+                        <div class="dropdown-item selected" data-value="antigravity">
                           <div class="item-row">
-                            <span class="item-label">Claude</span>
+                            <span class="item-label">Nimbus Proxy</span>
                             <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                               <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
+                          </div>
+                          <span class="item-desc">Claude & Gemini via Proxy</span>
+                        </div>
+                        <div class="dropdown-item" data-value="claude">
+                          <div class="item-row">
+                            <span class="item-label">Claude</span>
                           </div>
                           <span class="item-desc">Claude Agent SDK</span>
                         </div>
@@ -225,32 +315,38 @@
                     <!-- Model Selector Dropdown -->
                     <div class="dropdown-container" id="chatModelDropdown">
                       <button type="button" class="model-selector">
-                        <span class="model-label">Sonnet 4.5</span>
+                        <span class="model-label">Claude Sonnet 4.5</span>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <polyline points="6 9 12 15 18 9"></polyline>
                         </svg>
                       </button>
-                      <div class="dropdown-menu model-menu" data-provider="claude">
-                        <div class="dropdown-item" data-value="claude-opus-4-5-20250514">
+                      <div class="dropdown-menu model-menu" data-provider="antigravity">
+                        <div class="dropdown-item selected" data-value="claude-sonnet-4-5-thinking">
                           <div class="item-row">
-                            <span class="item-label">Opus 4.5</span>
-                          </div>
-                          <span class="item-desc">Most capable for complex work</span>
-                        </div>
-                        <div class="dropdown-item selected" data-value="claude-sonnet-4-5-20250514">
-                          <div class="item-row">
-                            <span class="item-label">Sonnet 4.5</span>
+                            <span class="item-label">Claude Sonnet 4.5</span>
                             <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                               <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
                           </div>
-                          <span class="item-desc">Best for everyday tasks</span>
+                          <span class="item-desc">Best balance with thinking</span>
                         </div>
-                        <div class="dropdown-item" data-value="claude-haiku-4-5-20250514">
+                        <div class="dropdown-item" data-value="claude-opus-4-5-thinking">
                           <div class="item-row">
-                            <span class="item-label">Haiku 4.5</span>
+                            <span class="item-label">Claude Opus 4.5</span>
                           </div>
-                          <span class="item-desc">Fastest for quick answers</span>
+                          <span class="item-desc">Most capable with thinking</span>
+                        </div>
+                        <div class="dropdown-item" data-value="gemini-3-flash">
+                          <div class="item-row">
+                            <span class="item-label">Gemini 3 Flash</span>
+                          </div>
+                          <span class="item-desc">Fast Gemini with thinking</span>
+                        </div>
+                        <div class="dropdown-item" data-value="gemini-3-pro-high">
+                          <div class="item-row">
+                            <span class="item-label">Gemini 3 Pro High</span>
+                          </div>
+                          <span class="item-desc">Most capable Gemini</span>
                         </div>
                       </div>
                     </div>
@@ -265,7 +361,7 @@
               </div>
             </form>
           </div>
-          <p class="disclaimer">Claude is AI and can make mistakes. Please double-check responses.</p>
+          <p class="disclaimer">Nimbus is AI-powered and may make mistakes. Double-check important information.</p>
         </div>
       </div>
 
@@ -318,6 +414,17 @@
         <polyline points="15 18 9 12 15 6"></polyline>
       </svg>
     </button>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Global Loading Overlay -->
+    <div class="loading-overlay hidden" id="loadingOverlay">
+      <div class="loading-content">
+        <div class="loading-spinner large"></div>
+        <p id="loadingMessage">Connecting...</p>
+      </div>
+    </div>
   </div>
 
   <script src="renderer.js"></script>

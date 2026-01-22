@@ -1,112 +1,175 @@
 <p align="center">
-  <h1 align="center">Open Claude Cowork</h1>
+  <h1 align="center">☁️ Nimbus</h1>
 </p>
 
 <p align="center">
-  <a href="https://platform.composio.dev?utm_source=github&utm_medium=readme&utm_campaign=open-claude-cowork">
-    <img src="open-claude-cowork.gif" alt="Open Claude Cowork Demo" width="800">
-  </a>
+  <strong>Autonomous AI Agent Desktop Application</strong>
 </p>
 
 <p align="center">
-  <a href="https://docs.composio.dev/tool-router/overview">
-    <img src="https://img.shields.io/badge/Composio-Tool%20Router-orange" alt="Composio">
-  </a>
-  <a href="https://platform.claude.com/docs/en/agent-sdk/overview">
-    <img src="https://img.shields.io/badge/Claude-Agent%20SDK-blue" alt="Claude Agent SDK">
-  </a>
-  <a href="https://github.com/anthropics/claude-code">
-    <img src="https://img.shields.io/badge/Powered%20by-Claude%20Code-purple" alt="Claude Code">
-  </a>
-  <a href="https://twitter.com/composio">
-    <img src="https://img.shields.io/twitter/follow/composio?style=social" alt="Twitter">
-  </a>
+  <img src="https://img.shields.io/badge/Nimbus-v1.0-blue" alt="Nimbus">
+  <img src="https://img.shields.io/badge/Claude-Sonnet%20%26%20Opus-orange" alt="Claude">
+  <img src="https://img.shields.io/badge/Gemini-Flash%20%26%20Pro-green" alt="Gemini">
+  <img src="https://img.shields.io/badge/Tools-32-purple" alt="Tools">
 </p>
 
 <p align="center">
-  An open-source desktop chat application powered by Claude Agent SDK and Composio Tool Router. Build AI agents with access to 500+ tools and persistent chat sessions.
-</p>
-
-<p align="center">
-  <a href="https://platform.composio.dev?utm_source=github&utm_medium=readme&utm_campaign=open-claude-cowork">
-    <img src="https://img.shields.io/badge/Get%20Started-Composio%20Platform-orange?style=for-the-badge" alt="Get Started with Composio">
-  </a>
+  An open-source autonomous AI agent with full system access. Supports Claude and Gemini models. Complete file management, code execution, web search, browser automation, and more.
 </p>
 
 ---
 
-## Features
+## What Can It Do?
 
-- **Multi-Provider Support** - Choose between Claude Agent SDK and Opencode for different model options
-- **Claude Agent SDK Integration** - Full agentic capabilities with tool use and multi-turn conversations
-- **Opencode SDK Support** - Access multiple LLM providers (Claude, GPT-5, Grok, GLM, MiniMax, and more)
-- **Composio Tool Router** - Access to 500+ external tools (Gmail, Slack, GitHub, Google Drive, and more)
-- **Persistent Chat Sessions** - Conversations maintain context across messages using SDK session management
-- **Multi-Chat Support** - Create and switch between multiple chat sessions
-- **Real-time Streaming** - Server-Sent Events (SSE) for smooth, token-by-token response streaming
-- **Tool Call Visualization** - See tool inputs and outputs in real-time in the sidebar
-- **Progress Tracking** - Todo list integration for tracking agent task progress
-- **Modern UI** - Clean, dark-themed interface inspired by Claude.ai
-- **Desktop App** - Native Electron application for macOS, Windows, and Linux
+Nimbus is a **fully autonomous AI agent** that can:
+
+### File Management
+- **Read** any file on your system with line numbers and syntax awareness
+- **Write** new files with automatic directory creation
+- **Edit** existing files with precise text replacement
+- **Search** files using glob patterns (`**/*.js`, `src/**/*.ts`)
+- **Grep** through code with regex patterns
+- **Copy, Move, Delete** files and directories
+
+### Code Execution
+- **Run any shell command** - git, npm, python, docker, and more
+- Execute scripts, build projects, run tests
+- Full access to system tools and utilities
+- Streaming output for long-running commands
+
+### Web & Research
+- **WebSearch** - Search the internet using DuckDuckGo (no API key needed)
+- **WebFetch** - Fetch and read web pages, extract text content
+- Research topics, find documentation, gather information
+
+### Task Management
+- **TodoWrite** - Create and track multi-step task progress
+- **TodoRead** - View current task list status
+- Break down complex tasks into manageable steps
+- Track completion status (pending, in_progress, completed)
+
+### Code Analysis
+- Analyze file structure, functions, classes
+- Extract imports and dependencies
+- Understand codebase architecture
 
 ---
 
-## Tech Stack
+## Key Features
 
-| Category | Technology |
-|----------|------------|
-| **Desktop Framework** | Electron.js |
-| **Backend** | Node.js + Express |
-| **AI Providers** | Claude Agent SDK + Opencode SDK |
-| **Tool Integration** | Composio Tool Router + MCP |
-| **Streaming** | Server-Sent Events (SSE) |
-| **Markdown** | Marked.js |
-| **Styling** | Vanilla CSS |
+| Feature | Description |
+|---------|-------------|
+| **Fully Autonomous** | Agent completes tasks independently without constant prompting |
+| **32 Built-in Tools** | File ops, bash, web search, computer use, browser extension, task tracking |
+| **Chrome Extension** | Real browser automation with DOM access, form filling, and screenshots |
+| **Deletion Protection** | File deletions require explicit user approval |
+| **Computer Use** | Browser automation with screenshots, mouse, keyboard control |
+| **Streaming Responses** | Real-time output for fast feedback |
+| **Multi-Model Support** | Claude Sonnet/Opus and Gemini 3 Flash/Pro |
+| **Multi-Turn Agentic Loop** | Up to 50 turns per task for complex operations |
+| **Progress Visibility** | See what the agent is doing at each step |
+| **Tool Visualization** | View tool inputs and outputs in real-time |
+| **Session Persistence** | Conversations maintain context across messages |
+| **Free Models Available** | Use Gemini models through Google Cloud Code |
 
 ---
 
-## Getting Started
+## Available Tools (32 Total)
 
-### Quick Setup (Recommended)
+### File Operations
+| Tool | Description |
+|------|-------------|
+| `Read` | Read file contents with line numbers |
+| `Write` | Create or overwrite files |
+| `Edit` | Replace specific text in files |
+| `Glob` | Find files by pattern |
+| `Grep` | Search file contents with regex |
+| `ListDir` | List directory contents |
+| `MakeDir` | Create directories |
+| `Move` | Move or rename files |
+| `Copy` | Copy files or directories |
+| `Delete` | Request file deletion (requires approval) |
+| `ConfirmDelete` | Execute approved deletion |
+| `CancelDelete` | Cancel pending deletion |
+
+### System
+| Tool | Description |
+|------|-------------|
+| `Bash` | Execute shell commands (git, npm, python, etc.) |
+
+### Web
+| Tool | Description |
+|------|-------------|
+| `WebSearch` | Search the internet (DuckDuckGo) |
+| `WebFetch` | Fetch and read web page contents |
+
+### Task Management & Progress
+| Tool | Description |
+|------|-------------|
+| `TodoWrite` | Create and update task list |
+| `TodoRead` | Read current tasks |
+| `Progress` | Report current step to user |
+
+### Analysis
+| Tool | Description |
+|------|-------------|
+| `CodeAnalysis` | Analyze code structure and dependencies |
+
+### Computer Use (Browser Automation)
+| Tool | Description |
+|------|-------------|
+| `Screenshot` | Take a screenshot of the current screen |
+| `MouseClick` | Click at screen coordinates (0-1000 scaled) |
+| `TypeText` | Type text at cursor position |
+| `KeyPress` | Press key combinations (Ctrl+C, Enter, etc.) |
+| `OpenBrowser` | Open browser and navigate to URL |
+| `Scroll` | Scroll screen up/down/left/right |
+| `Wait` | Wait for specified duration |
+
+### Browser Extension Tools (Chrome Extension Required)
+| Tool | Description |
+|------|-------------|
+| `BrowserNavigate` | Navigate browser to a URL |
+| `BrowserClick` | Click element by selector or text |
+| `BrowserType` | Type into input fields |
+| `BrowserRead` | Read page content (text/html/markdown) |
+| `BrowserScreenshot` | Screenshot the current tab |
+| `BrowserScroll` | Scroll the page |
+| `BrowserGetTabs` | List all open tabs |
+| `BrowserSwitchTab` | Switch to a specific tab |
+| `BrowserFillForm` | Fill multiple form fields at once |
+| `BrowserGetElements` | Get info about elements matching selector |
+
+---
+
+## Supported Models
+
+### Claude Models (via Nimbus Proxy)
+- `claude-sonnet-4-5-thinking` - Claude Sonnet 4.5 with extended thinking (default)
+- `claude-opus-4-5-thinking` - Claude Opus 4.5 with extended thinking
+
+### Gemini Models (via Nimbus Proxy)
+- `gemini-3-flash` - Gemini 3 Flash with thinking
+- `gemini-3-pro-low` - Gemini 3 Pro (lower quota)
+- `gemini-3-pro-high` - Gemini 3 Pro (higher quota)
+
+**Note:** All models have full agentic capabilities - the same 15 tools work with both Claude and Gemini.
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- [antigravity-claude-proxy](https://github.com/badri-s2001/antigravity-claude-proxy) running
+
+### 1. Clone and Install
 
 ```bash
-# Clone the repository
 git clone https://github.com/ComposioHQ/open-claude-cowork.git
 cd open-claude-cowork
 
-# Run the automated setup script
-./setup.sh
-```
-
-The setup script will:
-- Install Composio CLI if not already installed
-- Guide you through Composio signup/login
-- Configure your API keys in `.env`
-- Install all project dependencies
-
-### Manual Setup
-
-If you prefer manual setup, follow these steps:
-
-#### Prerequisites
-
-- Node.js 18+ installed
-- **For Claude Provider:**
-  - Anthropic API key ([console.anthropic.com](https://console.anthropic.com))
-- **For Opencode Provider:**
-  - Opencode API key ([opencode.dev](https://opencode.dev))
-- Composio API key ([app.composio.dev](https://app.composio.dev))
-
-#### 1. Clone the Repository
-
-```bash
-git clone https://github.com/ComposioHQ/open-claude-cowork.git
-cd open-claude-cowork
-```
-
-#### 2. Install Dependencies
-
-```bash
 # Install Electron app dependencies
 npm install
 
@@ -116,46 +179,58 @@ npm install
 cd ..
 ```
 
-#### 3. Configure Environment
+### 2. Configure Environment
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your API keys:
+Edit `.env`:
 
 ```env
-# Claude Provider
-ANTHROPIC_API_KEY=your-anthropic-api-key
+# Antigravity Provider (Default)
+ANTIGRAVITY_PROXY_URL=http://localhost:8080
+ANTIGRAVITY_MODEL=claude-sonnet-4-5-thinking
 
-# Opencode Provider (optional)
-OPENCODE_API_KEY=your-opencode-api-key
-OPENCODE_HOSTNAME=127.0.0.1
-OPENCODE_PORT=4096
+# For the proxy passthrough
+ANTHROPIC_API_KEY=antigravity-proxy
+ANTHROPIC_BASE_URL=http://localhost:8080
 
-# Composio Integration
+# Optional: Composio for 500+ external tools
 COMPOSIO_API_KEY=your-composio-api-key
 ```
 
-**Provider Selection:**
-- The app allows switching between **Claude** and **Opencode** providers in the UI
-- Only configure the API key(s) for the provider(s) you want to use
-- Opencode can route to multiple model providers through a single SDK
+### 3. Start the Application
 
-### Starting the Application
+**Terminal 1 - Antigravity Proxy:**
+```bash
+cd antigravity-claude-proxy
+npm install
+npm start
+# First time: Open http://localhost:8080 and add your Google account
+```
 
-You need **two terminal windows**:
-
-**Terminal 1 - Backend Server:**
+**Terminal 2 - Backend Server:**
 ```bash
 cd server
 npm start
 ```
 
-**Terminal 2 - Electron App:**
+**Terminal 3 - Electron App:**
 ```bash
 npm start
 ```
+
+### 4. Install Chrome Extension (Optional - for browser automation)
+
+1. Open Chrome and go to `chrome://extensions`
+2. Enable "Developer mode" (toggle in top right)
+3. Click "Load unpacked"
+4. Select the `chrome-extension` folder from this project
+5. The extension icon will appear in your toolbar
+6. Click it to see connection status
+
+The extension automatically connects to the backend via WebSocket at `ws://localhost:3001/browser`.
 
 ---
 
@@ -170,97 +245,87 @@ npm start
 │  └────────┬────────┘    └────────┬─────────┘                    │
 │           │                      │                               │
 │           └──────────┬───────────┘                               │
-│                      │ IPC (preload.js)                          │
 └──────────────────────┼───────────────────────────────────────────┘
-                       │
-                       │ HTTP + SSE
+                       │ HTTP + SSE Streaming
                        ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                     Backend Server                               │
 │  ┌─────────────────┐    ┌─────────────────┐                     │
-│  │  Express.js     │───▶│ Claude Agent SDK │                    │
-│  │  (server.js)    │    │  + Session Mgmt  │                    │
-│  └─────────────────┘    └────────┬─────────┘                    │
+│  │  Express.js     │───▶│ Antigravity     │                     │
+│  │  (server.js)    │    │ Provider        │                     │
+│  └─────────────────┘    └────────┬────────┘                     │
 │                                  │                               │
 │                                  ▼                               │
 │                    ┌─────────────────────────┐                   │
-│                    │   Composio Tool Router  │                   │
-│                    │   (MCP Server)          │                   │
+│                    │   Local Tool Executor   │                   │
+│                    │   (15 tools)            │                   │
 │                    └─────────────────────────┘                   │
+└─────────────────────────────────────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              Antigravity Claude Proxy (:8080)                    │
+│  ┌─────────────────┐    ┌─────────────────┐                     │
+│  │  Multi-Account  │───▶│ Google Cloud    │                     │
+│  │  Load Balancer  │    │ Code API        │                     │
+│  └─────────────────┘    └─────────────────┘                     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Session Management
+### How It Works
 
-The app uses Claude Agent SDK's built-in session management:
-1. First message creates a new session, returning a `session_id`
-2. Subsequent messages use `resume` option with the stored session ID
-3. Full conversation context is maintained server-side
+1. **User sends a message** → Frontend captures and sends to backend
+2. **Backend starts agentic loop** → Sends message + tools to proxy
+3. **Proxy routes to Google Cloud Code** → Claude or Gemini processes
+4. **Model returns tool calls** → Backend executes tools locally
+5. **Tool results sent back** → Loop continues until task complete
+6. **Streaming output** → User sees progress in real-time
 
-### Tool Integration
+---
 
-Composio Tool Router provides MCP server integration:
-- Tools are authenticated per-user via Composio dashboard
-- Available tools include Google Workspace, Slack, GitHub, and 500+ more
-- Tool calls are streamed and displayed in real-time
+## Settings Panel
 
-### Provider Architecture
+Access the settings by clicking the gear icon in the left sidebar. The settings panel embeds the Antigravity proxy's web UI with tabs for:
 
-The application supports multiple AI providers through a pluggable provider system:
+- **Dashboard** - Overview and quick stats
+- **Accounts** - Manage Google accounts for API access
+- **Models** - View available models
+- **Settings** - Configure proxy settings
+- **Logs** - View request logs
 
-#### Claude Provider
-- Uses Anthropic's Claude Agent SDK
-- Available models:
-  - Claude Opus 4.5 (claude-opus-4-5-20250514)
-  - Claude Sonnet 4.5 (claude-sonnet-4-5-20250514) - default
-  - Claude Haiku 4.5 (claude-haiku-4-5-20250514)
-- Session management via built-in SDK session tracking
-- Direct streaming from Claude API
+---
 
-#### Opencode Provider
-- Routes to multiple LLM providers through a single SDK
-- Available models:
-  - `opencode/big-pickle` - Free reasoning model (default)
-  - `opencode/gpt-5-nano` - OpenAI's reasoning models
-  - `opencode/glm-4.7-free` - Zhipu GLM models
-  - `opencode/grok-code` - xAI Grok for coding
-  - `opencode/minimax-m2.1-free` - MiniMax models
-  - `anthropic/*` - Claude models through Opencode
-- Event-based streaming with real-time part updates
-- Session management per chat conversation
-- Extended thinking support (reasoning parts)
+## Use Cases
 
-**Streaming Implementation:**
-Both providers use Server-Sent Events (SSE) for streaming responses:
-- Backend: Express server streams normalized chunks via HTTP
-- Frontend: Real-time processing with markdown rendering
-- Tool calls: Inline display with input/output visualization
-
-### MCP Configuration (Tools Integration)
-
-**Important: Opencode requires MCP servers to be configured in `server/opencode.json`**
-
-The application automatically updates this file when starting:
-1. Composio session is created on first request with MCP URL
-2. Backend writes the MCP config to `server/opencode.json`
-3. Opencode reads the config file and loads MCP tools
-
-**File: `server/opencode.json`**
-```json
-{
-  "mcp": {
-    "composio": {
-      "type": "remote",
-      "url": "https://backend.composio.dev/tool_router/YOUR_ROUTER_ID/mcp",
-      "headers": {
-        "x-api-key": "YOUR_API_KEY"
-      }
-    }
-  }
-}
+### Software Development
+```
+"Create a new React component for user authentication with form validation"
+"Find all TODO comments in the codebase and create a task list"
+"Refactor this function to use async/await instead of callbacks"
+"Run the tests and fix any failures"
 ```
 
-**Note:** Don't manually edit this file - it's generated automatically by the backend. The placeholders are replaced with real credentials from your Composio session.
+### File Management
+```
+"Organize all files in Downloads by file type"
+"Find all large files over 100MB and list them"
+"Create a backup of the src folder"
+"Rename all .txt files to use kebab-case"
+```
+
+### Research & Documentation
+```
+"Search for the latest React 19 features and summarize them"
+"Fetch the documentation for Express.js error handling"
+"Research best practices for API security"
+```
+
+### Data Analysis
+```
+"Analyze the package.json and list all dependencies"
+"Count lines of code by file type in this project"
+"Find all functions that don't have error handling"
+```
 
 ---
 
@@ -271,73 +336,75 @@ open-claude-cowork/
 ├── main.js                 # Electron main process
 ├── preload.js              # IPC security bridge
 ├── renderer/
-│   ├── index.html          # Chat interface
-│   ├── renderer.js         # Frontend logic & streaming handler
+│   ├── index.html          # Chat interface with settings panel
+│   ├── renderer.js         # Frontend logic & streaming
 │   └── style.css           # Styling
 ├── server/
-│   ├── server.js           # Express + Provider routing + MCP config writer
-│   ├── opencode.json       # MCP config (auto-generated, see note below)
+│   ├── server.js           # Express + Provider routing
+│   ├── tools/
+│   │   └── index.js        # 15 tool implementations
 │   ├── providers/
-│   │   ├── base-provider.js      # Abstract base class
-│   │   ├── claude-provider.js    # Claude Agent SDK implementation
-│   │   └── opencode-provider.js  # Opencode SDK implementation
+│   │   ├── base-provider.js         # Abstract base
+│   │   ├── antigravity-provider.js  # Main provider with agentic loop
+│   │   ├── claude-provider.js       # Direct Claude SDK
+│   │   └── opencode-provider.js     # Opencode SDK
 │   └── package.json
+├── antigravity-claude-proxy/        # Proxy for Google Cloud Code
 ├── package.json
-├── .env                    # API keys (not tracked)
+├── .env                    # Configuration (not tracked)
 └── .env.example            # Template
 ```
-
-**Note on `server/opencode.json`:**
-- Generated automatically by the backend when you run the app
-- Contains Composio MCP URL and credentials
-- Opencode reads this file to load tools
-- Don't track in git (add to `.gitignore` or use template)
-
----
-
-## Available Scripts
-
-| Command | Description |
-|---------|-------------|
-| `npm start` | Start the Electron app |
-| `npm run dev` | Start in development mode with live reload |
-| `cd server && npm start` | Start the backend server |
 
 ---
 
 ## Troubleshooting
 
-**"Failed to connect to backend"**
-- Ensure backend server is running on port 3001
-- Check Terminal 1 for error logs
-- Verify firewall isn't blocking localhost:3001
+### "Failed to connect to Antigravity proxy"
+- Ensure antigravity-claude-proxy is running on port 8080
+- Visit http://localhost:8080 to verify
+- First time: Add a Google account via the web UI
 
-**"API key error"**
-- For Claude: Verify `ANTHROPIC_API_KEY` in `.env` starts with `sk-ant-`
-- For Opencode: Ensure `OPENCODE_API_KEY` is valid and from opencode.dev
-- Ensure `COMPOSIO_API_KEY` is valid
+### "Quota exhausted" / "429 Error"
+- Add more Google accounts to the proxy
+- Switch to Gemini models (often have higher quotas)
+- Wait for rate limits to reset
 
-**"Provider not available"**
-- Ensure the required API key is configured in `.env`
-- Restart the backend server after changing `.env`
-- Check server logs for initialization errors
+### "Tool execution failed"
+- Check file paths are absolute
+- Verify permissions for file operations
+- Check server logs for detailed errors
 
-**"Session not persisting"**
-- Check server logs for session ID capture
-- Ensure `chatId` is being passed from frontend
-- Different providers use different session mechanisms (Claude SDK vs Opencode sessions)
+### "Slow responses"
+- Gemini models are generally faster than Claude
+- Streaming is enabled by default for real-time output
+- Complex tasks with many tools take longer
 
-**"Streaming seems slow or incomplete"**
-- Check network/firewall settings for SSE connections
-- Verify backend is receiving events from provider SDK
-- Check browser console for connection errors
-- For Opencode: Ensure event subscription is receiving `message.part.updated` events
+---
 
-**"Opencode models not responding"**
-- Verify Opencode server is running (localhost:4096 or configured URL)
-- Check that model identifiers match Opencode format (e.g., `opencode/big-pickle`)
-- Review Opencode API documentation for available models
-- Check server logs for Opencode SDK initialization errors
+## Advanced Configuration
+
+### Custom Proxy URL
+```env
+ANTIGRAVITY_PROXY_URL=http://your-proxy-host:8080
+```
+
+### Default Model
+```env
+ANTIGRAVITY_MODEL=gemini-3-flash
+```
+
+### Max Tokens
+Configure in `server/providers/antigravity-provider.js`:
+```javascript
+this.maxTokens = 16384;  // Increase for longer responses
+this.maxTurns = 50;      // Increase for more complex tasks
+```
+
+### Thinking Budget
+For thinking models, adjust the thinking budget:
+```javascript
+body.thinking = { type: 'enabled', budget_tokens: 10000 };
+```
 
 ---
 
@@ -351,17 +418,33 @@ open-claude-cowork/
 
 ---
 
-## Resources
+## Credits & Acknowledgments
 
-- [Claude Agent SDK Documentation](https://docs.anthropic.com/en/docs/claude-agent-sdk)
-- [Opencode SDK Documentation](https://docs.opencode.dev)
-- [Composio Tool Router](https://docs.composio.dev/tool-router)
-- [Composio Dashboard](https://app.composio.dev)
-- [Electron Documentation](https://www.electronjs.org/docs)
-- [Opencode Platform](https://opencode.dev)
+Nimbus is built upon and inspired by these amazing projects:
+
+- **[antigravity-claude-proxy](https://github.com/badrisnarayanan/antigravity-claude-proxy)** - Proxy for accessing Claude and Gemini models
+- **[Open Claude Cowork](https://github.com/ComposioHQ/open-claude-cowork)** - Original autonomous agent desktop application by Composio
+
+---
+
+## License
+
+MIT License - See [LICENSE](LICENSE) for details.
+
+---
+
+## Legal Disclaimer
+
+**Not affiliated with Google or Anthropic.** This is an independent open-source project and is not endorsed by, sponsored by, or affiliated with Google LLC or Anthropic PBC.
+
+- "Gemini", "Google Cloud", and "Google" are trademarks of Google LLC.
+- "Claude" and "Anthropic" are trademarks of Anthropic PBC.
+
+Software is provided "as is", without warranty. You are responsible for complying with all applicable Terms of Service and Acceptable Use Policies.
 
 ---
 
 <p align="center">
-  Built with Claude Code and Composio
+  <strong>Nimbus - Autonomous AI Agent</strong><br>
+  Multi-model support with Claude & Gemini
 </p>

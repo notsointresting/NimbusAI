@@ -4,8 +4,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import dotenv from 'dotenv';
-import { Composio } from '@composio/core';
+import { WebSocketServer } from 'ws';
+import http from 'http';
 import { getProvider, getAvailableProviders, initializeProviders } from './providers/index.js';
+import { getPendingDeletions, getProgress, setBrowserExtension } from './tools/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,14 +17,35 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Initialize Composio
-const composio = new Composio();
-
+// Composio is optional - only initialize if API key is present
+let composio = null;
 const composioSessions = new Map();
 let defaultComposioSession = null;
+let composioEnabled = false;
 
-// Pre-initialize Composio session on startup
+// Try to initialize Composio if API key is available
+async function initializeComposio() {
+  if (!process.env.COMPOSIO_API_KEY) {
+    console.log('[COMPOSIO] No API key found - Composio tools disabled');
+    return;
+  }
+
+  try {
+    const { Composio } = await import('@composio/core');
+    composio = new Composio();
+    composioEnabled = true;
+    console.log('[COMPOSIO] Initialized successfully');
+  } catch (error) {
+    console.warn('[COMPOSIO] Failed to initialize:', error.message);
+  }
+}
+
+// Pre-initialize Composio session on startup (only if enabled)
 async function initializeComposioSession() {
+  if (!composioEnabled || !composio) {
+    return;
+  }
+
   const defaultUserId = 'default-user';
   console.log('[COMPOSIO] Pre-initializing session for:', defaultUserId);
   try {
@@ -63,7 +86,7 @@ app.post('/api/chat', async (req, res) => {
     message,
     chatId,
     userId = 'default-user',
-    provider: providerName = 'claude',  // Per-request provider selection
+    provider: providerName = 'antigravity',  // Per-request provider selection (default: antigravity)
     model = null  // Per-request model selection
   } = req.body;
 
@@ -103,31 +126,35 @@ app.post('/api/chat', async (req, res) => {
   });
 
   try {
-    // Get or create Composio session for this user
-    let composioSession = composioSessions.get(userId);
-    if (!composioSession) {
-      console.log('[COMPOSIO] Creating new session for user:', userId);
-      res.write(`data: ${JSON.stringify({ type: 'status', message: 'Initializing session...' })}\n\n`);
-      composioSession = await composio.create(userId);
-      composioSessions.set(userId, composioSession);
-      console.log('[COMPOSIO] Session created with MCP URL:', composioSession.mcp.url);
+    // Get or create Composio session for this user (only if Composio is enabled)
+    let mcpServers = {};
 
-      // Update opencode.json with the MCP config
-      updateOpencodeConfig(composioSession.mcp.url, composioSession.mcp.headers);
-      console.log('[OPENCODE] Updated opencode.json with MCP config');
+    if (composioEnabled && composio) {
+      let composioSession = composioSessions.get(userId);
+      if (!composioSession) {
+        console.log('[COMPOSIO] Creating new session for user:', userId);
+        res.write(`data: ${JSON.stringify({ type: 'status', message: 'Initializing session...' })}\n\n`);
+        composioSession = await composio.create(userId);
+        composioSessions.set(userId, composioSession);
+        console.log('[COMPOSIO] Session created with MCP URL:', composioSession.mcp.url);
+
+        // Update opencode.json with the MCP config
+        updateOpencodeConfig(composioSession.mcp.url, composioSession.mcp.headers);
+        console.log('[OPENCODE] Updated opencode.json with MCP config');
+      }
+
+      // Build MCP servers config - passed to provider
+      mcpServers = {
+        composio: {
+          type: 'http',
+          url: composioSession.mcp.url,
+          headers: composioSession.mcp.headers
+        }
+      };
     }
 
     // Get the provider instance
     const provider = getProvider(providerName);
-
-    // Build MCP servers config - passed to provider
-    const mcpServers = {
-      composio: {
-        type: 'http',
-        url: composioSession.mcp.url,
-        headers: composioSession.mcp.headers
-      }
-    };
 
     console.log('[CHAT] Using provider:', provider.name);
     console.log('[CHAT] All stored sessions:', Array.from(provider.sessions.entries()));
@@ -171,7 +198,7 @@ app.post('/api/chat', async (req, res) => {
 app.get('/api/providers', (_req, res) => {
   res.json({
     providers: getAvailableProviders(),
-    default: 'claude'
+    default: 'antigravity'
   });
 });
 
@@ -184,13 +211,121 @@ app.get('/api/health', (_req, res) => {
   });
 });
 
+// Get pending deletions for a session
+app.get('/api/pending-deletions', (req, res) => {
+  const { sessionId } = req.query;
+  const pending = getPendingDeletions(sessionId);
+  res.json({
+    pending,
+    count: pending.length
+  });
+});
+
+// Get progress for a session
+app.get('/api/progress', (req, res) => {
+  const { sessionId } = req.query;
+  const progress = getProgress(sessionId);
+  res.json({
+    progress,
+    count: progress.length
+  });
+});
+
+await initializeComposio();
 await initializeProviders();
 await initializeComposioSession();
 
+// Create HTTP server from Express app
+const httpServer = http.createServer(app);
+
+// ============================================
+// WebSocket Server for Chrome Extension
+// ============================================
+
+const wss = new WebSocketServer({ server: httpServer, path: '/browser' });
+let browserExtensionSocket = null;
+let pendingRequests = new Map();
+let requestIdCounter = 0;
+
+wss.on('connection', (ws, req) => {
+  console.log('[WS] Browser extension connected from:', req.socket.remoteAddress);
+  browserExtensionSocket = ws;
+
+  // Notify tools that browser extension is available
+  setBrowserExtension({
+    isConnected: () => browserExtensionSocket && browserExtensionSocket.readyState === 1,
+    sendCommand: async (action, params) => {
+      if (!browserExtensionSocket || browserExtensionSocket.readyState !== 1) {
+        throw new Error('Browser extension not connected');
+      }
+
+      const id = ++requestIdCounter;
+      const message = { id, action, params };
+
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          pendingRequests.delete(id);
+          reject(new Error(`Browser command ${action} timed out`));
+        }, 30000);
+
+        pendingRequests.set(id, { resolve, reject, timeout });
+        browserExtensionSocket.send(JSON.stringify(message));
+      });
+    }
+  });
+
+  ws.on('message', (data) => {
+    try {
+      const message = JSON.parse(data.toString());
+      console.log('[WS] Received:', message.type || message.action);
+
+      if (message.type === 'register') {
+        console.log('[WS] Extension registered:', message.client, 'v' + message.version);
+        ws.send(JSON.stringify({ type: 'registered', status: 'ok' }));
+      } else if (message.type === 'result' || message.type === 'error') {
+        const pending = pendingRequests.get(message.id);
+        if (pending) {
+          clearTimeout(pending.timeout);
+          pendingRequests.delete(message.id);
+
+          if (message.type === 'error') {
+            pending.reject(new Error(message.error));
+          } else {
+            pending.resolve(message);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[WS] Error parsing message:', error);
+    }
+  });
+
+  ws.on('close', () => {
+    console.log('[WS] Browser extension disconnected');
+    if (browserExtensionSocket === ws) {
+      browserExtensionSocket = null;
+      setBrowserExtension(null);
+    }
+  });
+
+  ws.on('error', (error) => {
+    console.error('[WS] WebSocket error:', error);
+  });
+});
+
+// API endpoint to check browser extension status
+app.get('/api/browser-status', (_req, res) => {
+  res.json({
+    connected: browserExtensionSocket && browserExtensionSocket.readyState === 1,
+    available: !!browserExtensionSocket
+  });
+});
+
 // Start server and keep reference to prevent garbage collection
-const server = app.listen(PORT, () => {
+const server = httpServer.listen(PORT, () => {
   console.log(`\n✓ Backend server running on http://localhost:${PORT}`);
   console.log(`✓ Chat endpoint: POST http://localhost:${PORT}/api/chat`);
+  console.log(`✓ WebSocket for browser: ws://localhost:${PORT}/browser`);
   console.log(`✓ Providers endpoint: GET http://localhost:${PORT}/api/providers`);
   console.log(`✓ Health check: GET http://localhost:${PORT}/api/health`);
   console.log(`✓ Available providers: ${getAvailableProviders().join(', ')}\n`);

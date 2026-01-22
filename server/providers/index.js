@@ -1,10 +1,12 @@
 import { ClaudeProvider } from './claude-provider.js';
 import { OpencodeProvider } from './opencode-provider.js';
+import { AntigravityProvider } from './antigravity-provider.js';
 
 // Provider registry
 const providers = {
   claude: ClaudeProvider,
-  opencode: OpencodeProvider
+  opencode: OpencodeProvider,
+  antigravity: AntigravityProvider
 };
 
 // Provider instance cache
@@ -75,6 +77,11 @@ export async function initializeProviders() {
     const opencodeProvider = getProvider('opencode');
     await opencodeProvider.initialize();
     console.log('[Providers] Opencode provider initialized');
+
+    // Get and initialize antigravity provider
+    const antigravityProvider = getProvider('antigravity');
+    await antigravityProvider.initialize();
+    console.log('[Providers] Antigravity provider initialized');
   } catch (error) {
     console.error('[Providers] Error initializing providers:', error.message);
   }
@@ -83,4 +90,5 @@ export async function initializeProviders() {
 // Export classes for direct use
 export { ClaudeProvider } from './claude-provider.js';
 export { OpencodeProvider } from './opencode-provider.js';
+export { AntigravityProvider } from './antigravity-provider.js';
 export { BaseProvider } from './base-provider.js';

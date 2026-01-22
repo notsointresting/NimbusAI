@@ -1,6 +1,12 @@
 // DOM Elements - Views
 const homeView = document.getElementById('homeView');
 const chatView = document.getElementById('chatView');
+const settingsView = document.getElementById('settingsView');
+
+// DOM Elements - Settings
+const settingsIframe = document.getElementById('settingsIframe');
+const settingsLoading = document.getElementById('settingsLoading');
+const settingsError = document.getElementById('settingsError');
 
 // DOM Elements - Home
 const homeForm = document.getElementById('homeForm');
@@ -35,8 +41,8 @@ let isFirstMessage = true;
 let todos = [];
 let toolCalls = [];
 let attachedFiles = [];
-let selectedProvider = 'claude';
-let selectedModel = 'claude-sonnet-4-5-20250514';
+let selectedProvider = 'antigravity';
+let selectedModel = 'claude-sonnet-4-5-thinking';
 let thinkingMode = 'normal'; // 'normal' or 'extended'
 let isWaitingForResponse = false;
 
@@ -49,6 +55,17 @@ let currentChatId = null;
 
 // Model configurations per provider
 const providerModels = {
+  antigravity: [
+    // Claude Models (with thinking)
+    { value: 'claude-sonnet-4-5-thinking', label: 'Claude Sonnet 4.5', desc: 'Best balance with thinking', default: true },
+    { value: 'claude-opus-4-5-thinking', label: 'Claude Opus 4.5', desc: 'Most capable with thinking' },
+    { value: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5 (no thinking)', desc: 'Fast without thinking' },
+    // Gemini Models
+    { value: 'gemini-3-flash', label: 'Gemini 3 Flash', desc: 'Fast Gemini with thinking' },
+    { value: 'gemini-3-pro-low', label: 'Gemini 3 Pro Low', desc: 'Balanced Gemini' },
+    { value: 'gemini-3-pro-high', label: 'Gemini 3 Pro High', desc: 'Most capable Gemini' },
+    { value: 'gemini-2.5-flash-lite[1m]', label: 'Gemini 2.5 Flash Lite', desc: 'Lightweight, fast responses' }
+  ],
   claude: [
     { value: 'claude-opus-4-5-20250514', label: 'Opus 4.5', desc: 'Most capable for complex work' },
     { value: 'claude-sonnet-4-5-20250514', label: 'Sonnet 4.5', desc: 'Best for everyday tasks', default: true },
@@ -75,6 +92,96 @@ function init() {
   loadAllChats();
   renderChatHistory();
   homeInput.focus();
+  checkConnectionStatus();
+  // Poll status every 5 seconds
+  setInterval(checkConnectionStatus, 5000);
+}
+
+// Check proxy and browser extension connection status
+async function checkConnectionStatus() {
+  const proxyStatus = document.querySelector('#proxyStatus .status-dot');
+  const browserStatus = document.querySelector('#browserStatus .status-dot');
+
+  // Check proxy connection
+  try {
+    const response = await fetch('http://localhost:3001/api/health', { timeout: 3000 });
+    if (response.ok) {
+      proxyStatus?.classList.remove('disconnected', 'error', 'connecting');
+      proxyStatus?.classList.add('connected');
+    } else {
+      proxyStatus?.classList.remove('connected', 'connecting');
+      proxyStatus?.classList.add('error');
+    }
+  } catch {
+    proxyStatus?.classList.remove('connected', 'connecting');
+    proxyStatus?.classList.add('disconnected');
+  }
+
+  // Check browser extension connection
+  try {
+    const response = await fetch('http://localhost:3001/api/browser-status', { timeout: 3000 });
+    const data = await response.json();
+    if (data.connected) {
+      browserStatus?.classList.remove('disconnected', 'error', 'connecting');
+      browserStatus?.classList.add('connected');
+    } else {
+      browserStatus?.classList.remove('connected', 'connecting', 'error');
+      browserStatus?.classList.add('disconnected');
+    }
+  } catch {
+    browserStatus?.classList.remove('connected', 'connecting');
+    browserStatus?.classList.add('disconnected');
+  }
+}
+
+// ==================== TOAST NOTIFICATIONS ====================
+const toastContainer = document.getElementById('toastContainer');
+const loadingOverlay = document.getElementById('loadingOverlay');
+const loadingMessage = document.getElementById('loadingMessage');
+
+const toastIcons = {
+  error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+  success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 16 10"/></svg>',
+  warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+};
+
+function showToast(title, message, type = 'info', duration = 5000) {
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `
+    <div class="toast-icon ${type}">${toastIcons[type]}</div>
+    <div class="toast-content">
+      <div class="toast-title">${title}</div>
+      <div class="toast-message">${message}</div>
+    </div>
+    <button class="toast-close" onclick="this.parentElement.remove()">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  `;
+
+  toastContainer.appendChild(toast);
+
+  // Auto-remove after duration
+  if (duration > 0) {
+    setTimeout(() => {
+      toast.classList.add('fade-out');
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
+  }
+
+  return toast;
+}
+
+function showLoading(message = 'Loading...') {
+  loadingMessage.textContent = message;
+  loadingOverlay.classList.remove('hidden');
+}
+
+function hideLoading() {
+  loadingOverlay.classList.add('hidden');
 }
 
 function generateId() {
@@ -158,7 +265,12 @@ function loadAllChats() {
 
 // Update provider UI across all dropdowns
 function updateProviderUI(provider) {
-  const providerLabel = provider === 'claude' ? 'Claude' : 'Opencode';
+  const providerLabels = {
+    antigravity: 'Antigravity',
+    claude: 'Claude',
+    opencode: 'Opencode'
+  };
+  const providerLabel = providerLabels[provider] || provider;
   document.querySelectorAll('.provider-selector .provider-label').forEach(l => {
     l.textContent = providerLabel;
   });
@@ -1596,6 +1708,130 @@ function handleBrowserTransitionOnMessage() {
     // Move browser to sidebar when user sends a new message
     moveBrowserToSidebar();
   }
+}
+
+// ==================== SETTINGS VIEW FUNCTIONS ====================
+
+let settingsVisible = false;
+let previousView = 'home'; // Track which view to return to
+
+// Toggle settings view
+window.toggleSettingsView = function() {
+  if (settingsVisible) {
+    closeSettingsView();
+  } else {
+    openSettingsView();
+  }
+}
+
+// Open settings view
+function openSettingsView() {
+  // Remember which view we came from
+  if (!chatView.classList.contains('hidden')) {
+    previousView = 'chat';
+  } else {
+    previousView = 'home';
+  }
+
+  // Hide other views
+  homeView.classList.add('hidden');
+  chatView.classList.add('hidden');
+
+  // Show settings view
+  settingsView.classList.remove('hidden');
+  settingsVisible = true;
+
+  // Check if proxy is available
+  checkProxyConnection();
+
+  // Setup iframe load handler
+  settingsIframe.onload = function() {
+    settingsLoading.classList.add('hidden');
+    settingsError.classList.add('hidden');
+  };
+
+  settingsIframe.onerror = function() {
+    settingsLoading.classList.add('hidden');
+    settingsError.classList.remove('hidden');
+  };
+}
+
+// Close settings view
+window.closeSettingsView = function() {
+  settingsView.classList.add('hidden');
+  settingsVisible = false;
+
+  // Return to previous view
+  if (previousView === 'chat' && currentChatId) {
+    chatView.classList.remove('hidden');
+  } else {
+    homeView.classList.remove('hidden');
+  }
+}
+
+// Switch settings tab
+window.switchSettingsTab = function(tab) {
+  // Update tab buttons
+  document.querySelectorAll('.settings-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tab);
+  });
+
+  // Update iframe URL
+  const tabMap = {
+    'dashboard': '#dashboard',
+    'accounts': '#accounts',
+    'models': '#models',
+    'settings': '#settings',
+    'logs': '#logs'
+  };
+
+  const hash = tabMap[tab] || '#dashboard';
+  settingsIframe.src = `http://localhost:8080/${hash}`;
+
+  // Show loading
+  settingsLoading.classList.remove('hidden');
+  settingsError.classList.add('hidden');
+}
+
+// Refresh settings iframe
+window.refreshSettingsIframe = function() {
+  settingsLoading.classList.remove('hidden');
+  settingsError.classList.add('hidden');
+  settingsIframe.src = settingsIframe.src;
+}
+
+// Check if proxy is available
+async function checkProxyConnection() {
+  try {
+    const response = await fetch('http://localhost:8080/health', {
+      method: 'GET',
+      mode: 'cors'
+    });
+
+    if (response.ok) {
+      settingsLoading.classList.add('hidden');
+      settingsError.classList.add('hidden');
+    } else {
+      throw new Error('Proxy not available');
+    }
+  } catch (error) {
+    console.warn('[Settings] Cannot connect to proxy:', error);
+    // Don't show error immediately, let iframe try to load
+    setTimeout(() => {
+      if (!settingsIframe.contentDocument || !settingsIframe.contentDocument.body.innerHTML) {
+        settingsLoading.classList.add('hidden');
+        settingsError.classList.remove('hidden');
+      }
+    }, 5000);
+  }
+}
+
+// Retry connection to proxy
+window.retrySettingsConnection = function() {
+  settingsLoading.classList.remove('hidden');
+  settingsError.classList.add('hidden');
+  settingsIframe.src = 'http://localhost:8080/#dashboard';
+  checkProxyConnection();
 }
 
 // Initialize on load

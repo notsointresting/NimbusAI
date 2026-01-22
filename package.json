@@ -1,5 +1,5 @@
 {
-  "name": "open-claude-cowork",
+  "name": "nimbus-agent",
   "version": "1.0.0",
   "main": "main.js",
   "scripts": {
@@ -8,8 +8,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "ISC",
-  "description": "Electron chat app with Claude Agent SDK and Opencode SDK support",
+  "license": "MIT",
+  "description": "Nimbus - Autonomous AI Agent Desktop Application",
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.7",
     "@opencode-ai/sdk": "latest",
