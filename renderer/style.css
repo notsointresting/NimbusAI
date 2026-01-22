@@ -1115,6 +1115,137 @@ body {
   color: var(--text-secondary);
 }
 
+/* ==================== PERMISSION DIALOG ==================== */
+.permission-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10002;
+  animation: fadeIn 0.2s ease;
+}
+
+.permission-dialog {
+  background: var(--bg-white);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.permission-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.permission-icon {
+  width: 32px;
+  height: 32px;
+  color: #f59e0b;
+}
+
+.permission-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.permission-content {
+  margin-bottom: 20px;
+}
+
+.permission-message {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.permission-details {
+  background: var(--bg-cream);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.permission-detail-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.permission-detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.permission-label {
+  color: var(--text-tertiary);
+  min-width: 70px;
+  font-weight: 500;
+}
+
+.permission-value {
+  color: var(--text-primary);
+  word-break: break-all;
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 12px;
+}
+
+.permission-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.permission-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.permission-btn.deny {
+  background: var(--bg-cream);
+  color: var(--text-primary);
+}
+
+.permission-btn.deny:hover {
+  background: #e5e5e0;
+}
+
+.permission-btn.allow {
+  background: #22c55e;
+  color: white;
+}
+
+.permission-btn.allow:hover {
+  background: #16a34a;
+}
+
 /* ==================== RESPONSIVE ==================== */
 @media (max-width: 768px) {
   .greeting-text {

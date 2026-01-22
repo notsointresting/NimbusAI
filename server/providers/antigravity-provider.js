@@ -14,12 +14,28 @@ export class AntigravityProvider extends BaseProvider {
   constructor(config = {}) {
     super(config);
     this.proxyUrl = config.proxyUrl || process.env.ANTIGRAVITY_PROXY_URL || 'http://localhost:8080';
-    this.model = config.model || process.env.ANTIGRAVITY_MODEL || 'claude-sonnet-4-5-thinking';
+    // Use faster non-thinking model by default for quick responses
+    this.model = config.model || process.env.ANTIGRAVITY_MODEL || 'claude-sonnet-4-5';
+    this.thinkingModel = 'claude-sonnet-4-5-thinking'; // For complex tasks
     this.maxTurns = config.maxTurns || 50;
-    this.maxTokens = config.maxTokens || 16384;
+    this.maxTokens = config.maxTokens || 8192; // Reduced for faster responses
 
     // Conversation history per chat
     this.conversationHistory = new Map();
+  }
+
+  /**
+   * Determine if task is complex and needs thinking model
+   */
+  needsThinkingModel(prompt) {
+    const complexPatterns = [
+      /debug|fix.*bug|investigate|analyze.*code/i,
+      /architect|design|plan.*implementation/i,
+      /refactor|optimize.*algorithm/i,
+      /security|vulnerability|audit/i,
+      /complex|difficult|challenging/i
+    ];
+    return complexPatterns.some(p => p.test(prompt));
   }
 
   get name() {
@@ -162,7 +178,10 @@ ${process.cwd()}
    * Main query method with streaming agentic loop
    */
   async *query(params) {
-    const { prompt, chatId, model = this.model } = params;
+    const { prompt, chatId, model } = params;
+
+    // Smart model selection - use thinking model only for complex tasks
+    const selectedModel = model || (this.needsThinkingModel(prompt) ? this.thinkingModel : this.model);
 
     // Set session for tools
     setSessionId(chatId);
@@ -172,7 +191,7 @@ ${process.cwd()}
 
     yield { type: 'session_init', session_id: chatId, provider: this.name };
 
-    console.log(`[Antigravity] Starting with ${model}`);
+    console.log(`[Antigravity] Starting with ${selectedModel}`);
 
     let turn = 0;
     let continueLoop = true;
@@ -183,7 +202,7 @@ ${process.cwd()}
 
       try {
         // Use streaming for faster response
-        const response = await this.makeStreamingRequest(chatId, model);
+        const response = await this.makeStreamingRequest(chatId, selectedModel);
 
         if (!response.ok) {
           const error = await response.text();
@@ -297,9 +316,9 @@ ${process.cwd()}
       stream: true
     };
 
-    // Add thinking for thinking models
+    // Add thinking for thinking models (reduced budget for faster responses)
     if (model.includes('thinking')) {
-      body.thinking = { type: 'enabled', budget_tokens: 10000 };
+      body.thinking = { type: 'enabled', budget_tokens: 4000 };
     }
 
     return fetch(`${this.proxyUrl}/v1/messages`, {

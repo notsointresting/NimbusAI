@@ -7,7 +7,7 @@ import dotenv from 'dotenv';
 import { WebSocketServer } from 'ws';
 import http from 'http';
 import { getProvider, getAvailableProviders, initializeProviders } from './providers/index.js';
-import { getPendingDeletions, getProgress, setBrowserExtension } from './tools/index.js';
+import { getPendingDeletions, getProgress, setBrowserExtension, getPendingPermissions, confirmPermission, denyPermission } from './tools/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -229,6 +229,30 @@ app.get('/api/progress', (req, res) => {
     progress,
     count: progress.length
   });
+});
+
+// Get pending permissions for a session
+app.get('/api/pending-permissions', (req, res) => {
+  const { sessionId } = req.query;
+  const pending = getPendingPermissions(sessionId);
+  res.json({
+    pending,
+    count: pending.length
+  });
+});
+
+// Confirm a pending permission
+app.post('/api/confirm-permission', (req, res) => {
+  const { permissionId } = req.body;
+  const result = confirmPermission(permissionId);
+  res.json(result);
+});
+
+// Deny a pending permission
+app.post('/api/deny-permission', (req, res) => {
+  const { permissionId } = req.body;
+  const result = denyPermission(permissionId);
+  res.json(result);
 });
 
 await initializeComposio();

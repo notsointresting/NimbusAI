@@ -184,6 +184,102 @@ function hideLoading() {
   loadingOverlay.classList.add('hidden');
 }
 
+// ==================== PERMISSION DIALOGS ====================
+
+let pendingPermissionChecks = null;
+
+// Show permission dialog for sensitive path access
+function showPermissionDialog(permission) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'permission-overlay';
+    overlay.innerHTML = `
+      <div class="permission-dialog">
+        <div class="permission-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="permission-icon">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          <h3>Permission Required</h3>
+        </div>
+        <div class="permission-content">
+          <p class="permission-message">${permission.message}</p>
+          <div class="permission-details">
+            <div class="permission-detail-row">
+              <span class="permission-label">Path:</span>
+              <span class="permission-value">${permission.path}</span>
+            </div>
+            <div class="permission-detail-row">
+              <span class="permission-label">Operation:</span>
+              <span class="permission-value">${permission.operation}</span>
+            </div>
+            ${permission.reason ? `
+            <div class="permission-detail-row">
+              <span class="permission-label">Reason:</span>
+              <span class="permission-value">${permission.reason}</span>
+            </div>
+            ` : ''}
+          </div>
+        </div>
+        <div class="permission-actions">
+          <button class="permission-btn deny" id="denyPermission">Deny</button>
+          <button class="permission-btn allow" id="allowPermission">Allow</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    document.getElementById('allowPermission').onclick = async () => {
+      await fetch('http://localhost:3001/api/confirm-permission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permissionId: permission.permission_id })
+      });
+      overlay.remove();
+      resolve(true);
+    };
+
+    document.getElementById('denyPermission').onclick = async () => {
+      await fetch('http://localhost:3001/api/deny-permission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ permissionId: permission.permission_id })
+      });
+      overlay.remove();
+      resolve(false);
+    };
+  });
+}
+
+// Check for pending permissions periodically
+async function checkPendingPermissions() {
+  try {
+    const response = await fetch(`http://localhost:3001/api/pending-permissions?sessionId=${currentChatId}`);
+    const data = await response.json();
+
+    if (data.pending && data.pending.length > 0) {
+      for (const permission of data.pending) {
+        await showPermissionDialog(permission);
+      }
+    }
+  } catch (error) {
+    // Silently ignore - server might not be running
+  }
+}
+
+// Start checking for permissions when chat is active
+function startPermissionChecks() {
+  if (pendingPermissionChecks) return;
+  pendingPermissionChecks = setInterval(checkPendingPermissions, 1000);
+}
+
+function stopPermissionChecks() {
+  if (pendingPermissionChecks) {
+    clearInterval(pendingPermissionChecks);
+    pendingPermissionChecks = null;
+  }
+}
+
 function generateId() {
   return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
@@ -825,6 +921,9 @@ async function handleSendMessage(e) {
   // Set loading state
   isWaitingForResponse = true;
 
+  // Start checking for permission requests
+  startPermissionChecks();
+
   // Create assistant message with loading state
   const assistantMessage = createAssistantMessage();
   const contentDiv = assistantMessage.querySelector('.message-content');
@@ -967,6 +1066,7 @@ async function handleSendMessage(e) {
     contentDiv.appendChild(paragraph);
   } finally {
     isWaitingForResponse = false;
+    stopPermissionChecks();
     saveState();
     updateSendButton(messageInput, chatSendBtn);
     messageInput.focus();

@@ -20,8 +20,113 @@ const todoStorage = new Map();
 // Pending deletions requiring user approval
 const pendingDeletions = new Map();
 
+// Pending permissions for sensitive path access
+const pendingPermissions = new Map();
+const approvedPaths = new Map(); // sessionId -> Set of approved paths
+
 // Progress tracking for visibility
 const progressTracker = new Map();
+
+// Sensitive paths that require permission
+const SENSITIVE_PATHS = [
+  'Downloads',
+  'Documents',
+  'Desktop',
+  'Pictures',
+  'Videos',
+  'Music',
+  'AppData',
+  'Application Data',
+  '.ssh',
+  '.aws',
+  '.config',
+  'Program Files',
+  'Windows',
+  'System32'
+];
+
+/**
+ * Check if a path is sensitive and requires permission
+ */
+function isSensitivePath(targetPath) {
+  const normalizedPath = path.normalize(targetPath).toLowerCase();
+  const userHome = process.env.USERPROFILE || process.env.HOME || '';
+
+  return SENSITIVE_PATHS.some(sensitive => {
+    const sensitivePattern = sensitive.toLowerCase();
+    return normalizedPath.includes(sensitivePattern) ||
+           normalizedPath.includes(path.join(userHome, sensitive).toLowerCase());
+  });
+}
+
+/**
+ * Check if path has been approved for this session
+ */
+function isPathApproved(sessionId, targetPath) {
+  const approved = approvedPaths.get(sessionId);
+  if (!approved) return false;
+
+  const normalizedPath = path.normalize(targetPath).toLowerCase();
+  return Array.from(approved).some(approvedPath =>
+    normalizedPath.startsWith(approvedPath.toLowerCase())
+  );
+}
+
+/**
+ * Request permission for sensitive path access
+ */
+function requestPathPermission(targetPath, operation, reason = '') {
+  const permissionId = `perm_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  pendingPermissions.set(permissionId, {
+    path: targetPath,
+    operation,
+    reason,
+    sessionId: currentSessionId,
+    requestedAt: new Date().toISOString()
+  });
+
+  return {
+    requires_permission: true,
+    permission_id: permissionId,
+    path: targetPath,
+    operation,
+    message: `Permission required to ${operation} in sensitive location: ${targetPath}`,
+    reason,
+    instruction: 'User must approve this action. Use ConfirmPermission tool with this permission_id after user approval.'
+  };
+}
+
+export function getPendingPermissions(sessionId) {
+  const permissions = [];
+  pendingPermissions.forEach((perm, id) => {
+    if (!sessionId || perm.sessionId === sessionId) {
+      permissions.push({ id, ...perm });
+    }
+  });
+  return permissions;
+}
+
+export function confirmPermission(permissionId) {
+  const perm = pendingPermissions.get(permissionId);
+  if (!perm) return { error: 'Permission request not found or expired' };
+
+  // Add to approved paths for this session
+  if (!approvedPaths.has(perm.sessionId)) {
+    approvedPaths.set(perm.sessionId, new Set());
+  }
+  approvedPaths.get(perm.sessionId).add(path.normalize(perm.path));
+
+  pendingPermissions.delete(permissionId);
+  return { approved: true, path: perm.path };
+}
+
+export function denyPermission(permissionId) {
+  const perm = pendingPermissions.get(permissionId);
+  if (!perm) return { error: 'Permission request not found' };
+  pendingPermissions.delete(permissionId);
+  return { denied: true, path: perm.path };
+}
 
 // Browser extension reference (set by server when connected)
 let browserExtension = null;
@@ -177,6 +282,28 @@ export const TOOL_DEFINITIONS = [
         deletion_id: { type: 'string', description: 'The deletion ID to cancel' }
       },
       required: ['deletion_id']
+    }
+  },
+  {
+    name: 'ConfirmPermission',
+    description: 'Confirm permission for sensitive path access after user approval.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        permission_id: { type: 'string', description: 'The permission ID from the permission request' }
+      },
+      required: ['permission_id']
+    }
+  },
+  {
+    name: 'DenyPermission',
+    description: 'Deny permission for sensitive path access.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        permission_id: { type: 'string', description: 'The permission ID to deny' }
+      },
+      required: ['permission_id']
     }
   },
   {
@@ -515,6 +642,8 @@ export async function executeTool(name, input) {
       case 'Delete': result = await executeDelete(input); break;
       case 'ConfirmDelete': result = await executeConfirmDelete(input); break;
       case 'CancelDelete': result = await executeCancelDelete(input); break;
+      case 'ConfirmPermission': result = confirmPermission(input.permission_id); break;
+      case 'DenyPermission': result = denyPermission(input.permission_id); break;
       case 'Progress': result = await executeProgress(input); break;
       case 'WebSearch': result = await executeWebSearch(input); break;
       case 'WebFetch': result = await executeWebFetch(input); break;
@@ -556,6 +685,12 @@ export async function executeTool(name, input) {
 
 async function executeRead(input) {
   const { file_path, offset = 0, limit } = input;
+
+  // Check if path is sensitive and requires permission
+  if (isSensitivePath(file_path) && !isPathApproved(currentSessionId, file_path)) {
+    return requestPathPermission(file_path, 'read', 'Reading files from this location');
+  }
+
   const content = await fs.readFile(file_path, 'utf-8');
   const lines = content.split('\n');
 
@@ -571,6 +706,12 @@ async function executeRead(input) {
 
 async function executeWrite(input) {
   const { file_path, content } = input;
+
+  // Check if path is sensitive and requires permission
+  if (isSensitivePath(file_path) && !isPathApproved(currentSessionId, file_path)) {
+    return requestPathPermission(file_path, 'write', 'Writing files to this location');
+  }
+
   await fs.mkdir(path.dirname(file_path), { recursive: true });
   await fs.writeFile(file_path, content, 'utf-8');
   return { success: true, path: file_path, bytes: content.length };
@@ -578,6 +719,12 @@ async function executeWrite(input) {
 
 async function executeEdit(input) {
   const { file_path, old_string, new_string, replace_all = false } = input;
+
+  // Check if path is sensitive and requires permission
+  if (isSensitivePath(file_path) && !isPathApproved(currentSessionId, file_path)) {
+    return requestPathPermission(file_path, 'edit', 'Editing files in this location');
+  }
+
   const content = await fs.readFile(file_path, 'utf-8');
 
   if (!content.includes(old_string)) {
@@ -628,6 +775,12 @@ async function executeGrep(input) {
 
 async function executeListDir(input) {
   const { path: dirPath } = input;
+
+  // Check if path is sensitive and requires permission
+  if (isSensitivePath(dirPath) && !isPathApproved(currentSessionId, dirPath)) {
+    return requestPathPermission(dirPath, 'list', 'Listing files in this location');
+  }
+
   const entries = await fs.readdir(dirPath, { withFileTypes: true });
   const items = await Promise.all(entries.map(async e => {
     const fullPath = path.join(dirPath, e.name);
@@ -648,17 +801,39 @@ async function executeListDir(input) {
 }
 
 async function executeMakeDir(input) {
+  // Check if path is sensitive and requires permission
+  if (isSensitivePath(input.path) && !isPathApproved(currentSessionId, input.path)) {
+    return requestPathPermission(input.path, 'create directory', 'Creating directory in this location');
+  }
+
   await fs.mkdir(input.path, { recursive: true });
   return { success: true, path: input.path };
 }
 
 async function executeMove(input) {
+  // Check if either source or destination is sensitive
+  if (isSensitivePath(input.source) && !isPathApproved(currentSessionId, input.source)) {
+    return requestPathPermission(input.source, 'move from', 'Moving files from this location');
+  }
+  if (isSensitivePath(input.destination) && !isPathApproved(currentSessionId, input.destination)) {
+    return requestPathPermission(input.destination, 'move to', 'Moving files to this location');
+  }
+
   await fs.rename(input.source, input.destination);
   return { success: true, source: input.source, destination: input.destination };
 }
 
 async function executeCopy(input) {
   const { source, destination } = input;
+
+  // Check if either source or destination is sensitive
+  if (isSensitivePath(source) && !isPathApproved(currentSessionId, source)) {
+    return requestPathPermission(source, 'copy from', 'Copying files from this location');
+  }
+  if (isSensitivePath(destination) && !isPathApproved(currentSessionId, destination)) {
+    return requestPathPermission(destination, 'copy to', 'Copying files to this location');
+  }
+
   const stat = await fs.stat(source);
 
   if (stat.isDirectory()) {
